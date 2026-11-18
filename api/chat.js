@@ -29,7 +29,7 @@ export default async function handler(req, res) {
         model: model || 'openai/gpt-oss-20b',
         messages,
         temperature: temperature ?? 0.7,
-        max_tokens: max_tokens ?? 512
+        max_tokens: max_tokens ?? 1024
       })
     })
 

@@ -28,13 +28,13 @@ export default function Explore() {
       res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${clientKey}` },
-        body: JSON.stringify({ model: 'openai/gpt-oss-20b', messages, temperature: 0.7, max_tokens: 600 })
+        body: JSON.stringify({ model: 'openai/gpt-oss-20b', messages, temperature: 0.7, max_tokens: 1024 })
       })
     } else {
       res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages, temperature: 0.7, max_tokens: 600 })
+        body: JSON.stringify({ messages, temperature: 0.7, max_tokens: 1024 })
       })
     }
     if (!res.ok) throw new Error(`${res.status} ${res.statusText}`)

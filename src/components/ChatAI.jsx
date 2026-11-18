@@ -42,14 +42,14 @@ export default function ChatAI({ open, onClose }) {
         res = await fetch(GROQ_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${clientKey}` },
-          body: JSON.stringify({ model: GROQ_MODEL, messages: apiMessages, temperature: 0.7, max_tokens: 512 })
+          body: JSON.stringify({ model: GROQ_MODEL, messages: apiMessages, temperature: 0.7, max_tokens: 1024 })
         })
       } else {
         // Produção: proxy serverless (chave fica no servidor)
         res = await fetch('/api/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ messages: apiMessages, temperature: 0.7, max_tokens: 512 })
+          body: JSON.stringify({ messages: apiMessages, temperature: 0.7, max_tokens: 1024 })
         })
       }
 
