@@ -1,4 +1,17 @@
+const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGIN || '').split(',').map((s) => s.trim()).filter(Boolean)
+
+function isAllowedOrigin(origin) {
+  if (ALLOWED_ORIGINS.length === 0) return true
+  if (!origin) return true
+  return ALLOWED_ORIGINS.includes(origin)
+}
+
 export default async function handler(req, res) {
+  const origin = req.headers.origin
+  if (origin && !isAllowedOrigin(origin)) {
+    res.status(403).json({ error: 'Origem não permitida' })
+    return
+  }
   if (req.method !== 'GET') {
     res.status(405).json({ error: 'Method not allowed' })
     return
@@ -10,10 +23,10 @@ export default async function handler(req, res) {
     return
   }
 
-  const q = req.query?.q || ''
-  const maxResults = req.query?.maxResults || '6'
+  const q = String(req.query?.q || '').slice(0, 200)
+  const maxResults = Math.min(12, Math.max(1, Number(req.query?.maxResults) || 6))
 
-  if (!q) {
+  if (!q.trim()) {
     res.status(400).json({ error: 'Parâmetro q é obrigatório' })
     return
   }

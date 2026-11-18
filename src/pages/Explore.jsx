@@ -2,12 +2,15 @@ import React from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useSearchParams } from 'react-router-dom'
 import { Search, Sparkles, Play, Loader2, BookOpen, Youtube } from 'lucide-react'
+import Skeleton from '../components/Skeleton.jsx'
+import { useToast } from '../components/Toast.jsx'
 
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions'
 const GROQ_MODEL = 'openai/gpt-oss-20b'
 
 export default function Explore() {
   const [searchParams] = useSearchParams()
+  const toast = useToast()
   const [topic, setTopic] = React.useState(searchParams.get('topic') || '')
   const [activeTopic, setActiveTopic] = React.useState('')
   const [aiText, setAiText] = React.useState('')
@@ -110,7 +113,7 @@ export default function Explore() {
           if (vids.status === 'fulfilled') {
             setVideos(vids.value)
             if (vids.value.length > 0) setPlayingId(vids.value[0].id)
-          } else setError((prev) => prev + `YouTube: ${vids.reason?.message || 'erro'}\n`)
+          } else { setError((prev) => prev + `YouTube: ${vids.reason?.message || 'erro'}\n`); toast(vids.reason?.message || 'Erro ao buscar vídeos', 'error') }
         } finally {
           setLoadingAI(false)
           setLoadingVideos(false)
@@ -123,13 +126,13 @@ export default function Explore() {
   return (
     <div className="pt-28 pb-24 max-w-6xl mx-auto px-6">
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="mb-10">
-        <div className="inline-flex items-center gap-2 glass rounded-full px-3 py-1 text-xs text-white/70 mb-4">
+        <div className="inline-flex items-center gap-2 glass rounded-full px-3 py-1 text-xs text-gray-600 dark:text-white/70 mb-4">
           <Search className="w-3 h-3 text-neon-cyan" /> Explorar assunto
         </div>
         <h1 className="font-display text-4xl md:text-5xl font-bold tracking-tight">
           Digite um <span className="text-gradient">assunto</span>
         </h1>
-        <p className="text-white/60 mt-3 max-w-2xl">
+        <p className="text-gray-600 dark:text-white/60 mt-3 max-w-2xl">
           A IA explica o tema e busca vídeo-aulas no YouTube automaticamente.
         </p>
       </motion.div>
@@ -139,7 +142,7 @@ export default function Explore() {
           value={topic}
           onChange={(e) => setTopic(e.target.value)}
           placeholder="Ex: Equações do 2º grau, Revolução Francesa, Fotossíntese..."
-          className="flex-1 bg-transparent outline-none text-base py-2 placeholder:text-white/40"
+          className="flex-1 bg-transparent outline-none text-base py-2 placeholder:text-gray-400 dark:text-white/40"
         />
         <button
           type="submit"
@@ -171,14 +174,17 @@ export default function Explore() {
                 <BookOpen className="w-5 h-5 text-neon-cyan" />
                 <h2 className="font-display text-xl font-bold">Explicação da IA</h2>
               </div>
-              <div className="text-sm text-white/50 mb-4">Assunto: <span className="text-white">{activeTopic}</span></div>
+              <div className="text-sm text-gray-500 dark:text-white/50 mb-4">Assunto: <span className="text-gray-900 dark:text-white">{activeTopic}</span></div>
               {loadingAI ? (
-                <div className="flex items-center gap-2 text-white/60">
-                  <Loader2 className="w-4 h-4 animate-spin" /> Gerando explicação...
+                <div className="space-y-3">
+                  <Skeleton className="h-4 w-3/4" />
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-5/6" />
+                  <Skeleton className="h-4 w-2/3" />
                 </div>
               ) : (
                 <div className="flex-1 overflow-y-auto scrollbar-thin pr-1">
-                  <p className="text-white/80 leading-relaxed whitespace-pre-line">{aiText}</p>
+                  <p className="text-gray-700 dark:text-white/80 leading-relaxed whitespace-pre-line">{aiText}</p>
                 </div>
               )}
             </div>
@@ -190,15 +196,23 @@ export default function Explore() {
                 <h2 className="font-display text-xl font-bold">Vídeo-aulas</h2>
               </div>
               {loadingVideos ? (
-                <div className="flex items-center gap-2 text-white/60">
-                  <Loader2 className="w-4 h-4 animate-spin" /> Buscando vídeos...
+                <div className="space-y-3">
+                  {[0, 1, 2].map((i) => (
+                    <div key={i} className="flex gap-3">
+                      <Skeleton className="w-28 h-16 shrink-0" />
+                      <div className="flex-1 space-y-2">
+                        <Skeleton className="h-4 w-full" />
+                        <Skeleton className="h-3 w-2/3" />
+                      </div>
+                    </div>
+                  ))}
                 </div>
               ) : videos.length === 0 ? (
-                <p className="text-white/50 text-sm">Nenhum vídeo encontrado.</p>
+                <p className="text-gray-500 dark:text-white/50 text-sm">Nenhum vídeo encontrado.</p>
               ) : (
                 <div className="space-y-4">
                   {/* Player */}
-                  <div className="relative w-full aspect-video rounded-2xl overflow-hidden bg-black/60 border border-white/10">
+                  <div className="relative w-full aspect-video rounded-2xl overflow-hidden bg-black/60 border border-gray-200 dark:border-white/10">
                     {playingId ? (
                       <iframe
                         src={`https://www.youtube.com/embed/${playingId}?autoplay=1&rel=0`}
@@ -208,7 +222,7 @@ export default function Explore() {
                         allowFullScreen
                       />
                     ) : (
-                      <div className="absolute inset-0 flex flex-col items-center justify-center text-white/60 gap-2">
+                      <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-600 dark:text-white/60 gap-2">
                         <Play className="w-10 h-10" />
                         <span className="text-sm">Selecione um vídeo abaixo para assistir aqui</span>
                       </div>
@@ -228,12 +242,12 @@ export default function Explore() {
                         <div className="relative shrink-0">
                           <img src={v.thumb} alt={v.title} className="w-28 h-16 object-cover rounded-lg" />
                           <div className="absolute inset-0 flex items-center justify-center">
-                            <Play className="w-6 h-6 text-white drop-shadow opacity-80 group-hover:opacity-100" />
+                            <Play className="w-6 h-6 text-gray-900 dark:text-white drop-shadow opacity-80 group-hover:opacity-100" />
                           </div>
                         </div>
                         <div className="min-w-0 flex-1">
                           <div className="text-sm font-medium line-clamp-2 group-hover:text-neon-cyan transition-colors">{v.title}</div>
-                          <div className="text-xs text-white/50 mt-1 truncate">{v.channel}</div>
+                          <div className="text-xs text-gray-500 dark:text-white/50 mt-1 truncate">{v.channel}</div>
                         </div>
                       </button>
                     ))}

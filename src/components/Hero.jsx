@@ -59,7 +59,7 @@ export default function Hero() {
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1], delay: 0.1 }}
-          className="inline-flex items-center gap-2 glass rounded-full px-4 py-1.5 text-xs font-medium text-white/80 mb-8"
+          className="inline-flex items-center gap-2 glass rounded-full px-4 py-1.5 text-xs font-medium text-gray-700 dark:text-white/80 mb-8"
         >
           <span className="w-2 h-2 rounded-full bg-neon-cyan animate-pulse" />
           Nova geração de aprendizado com IA
@@ -80,7 +80,7 @@ export default function Hero() {
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1], delay: 0.4 }}
-          className="mt-8 max-w-2xl text-lg md:text-xl text-white/60 leading-relaxed"
+          className="mt-8 max-w-2xl text-lg md:text-xl text-gray-600 dark:text-white/60 leading-relaxed"
         >
           Uma plataforma imersiva que combina aulas interativas, quizzes inteligentes e um tutor de IA
           que simplifica qualquer assunto em segundos.
@@ -108,7 +108,7 @@ export default function Hero() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 1.2, duration: 1 }}
-          className="mt-20 flex items-center gap-6 text-white/40 text-sm"
+          className="mt-20 flex items-center gap-6 text-gray-400 dark:text-white/40 text-sm"
         >
           <div className="h-px w-12 bg-white/20" />
           Role para explorar

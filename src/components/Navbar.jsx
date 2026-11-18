@@ -1,11 +1,13 @@
 import React from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Sparkles, Menu, X } from 'lucide-react'
+import { Sparkles, Menu, X, Sun, Moon } from 'lucide-react'
+import { useTheme } from './ThemeToggle.jsx'
 
 export default function Navbar({ onOpenChat }) {
   const [open, setOpen] = React.useState(false)
   const loc = useLocation()
+  const { theme, toggle } = useTheme()
 
   return (
     <motion.header
@@ -34,7 +36,7 @@ export default function Navbar({ onOpenChat }) {
                 key={l.to}
                 to={l.to}
                 className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
-                  loc.pathname === l.to ? 'text-neon-cyan' : 'text-white/70 hover:text-white'
+                  loc.pathname === l.to ? 'text-neon-cyan' : 'text-gray-600 dark:text-white/70 hover:text-gray-900 dark:text-white'
                 }`}
               >
                 {l.label}
@@ -43,6 +45,13 @@ export default function Navbar({ onOpenChat }) {
           </nav>
 
           <div className="flex items-center gap-2">
+            <button
+              onClick={toggle}
+              className="p-2 rounded-xl glass hover:bg-white/10 dark:hover:bg-white/10 transition-colors"
+              aria-label="Alternar tema"
+            >
+              {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            </button>
             <button
               onClick={onOpenChat}
               className="hidden md:inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold bg-gradient-to-r from-neon-cyan to-neon-violet text-ink-950 hover:opacity-90 transition-opacity"

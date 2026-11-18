@@ -1,7 +1,9 @@
 import React from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useParams } from 'react-router-dom'
-import { Brain, Sparkles, Loader2, CheckCircle2, XCircle, RotateCcw, Play, Target } from 'lucide-react'
+import { Brain, Sparkles, Loader2, CheckCircle2, XCircle, RotateCcw, Play, Target, Star } from 'lucide-react'
+import { toggleFavorite, isFavorite, getFavorites, removeFavorite } from '../lib/favorites.js'
+import { useToast } from '../components/Toast.jsx'
 
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions'
 const GROQ_MODEL = 'openai/gpt-oss-20b'
@@ -33,6 +35,7 @@ function parseQuestions(text) {
 
 export default function Quiz() {
   const { subject } = useParams()
+  const toast = useToast()
   const [mode, setMode] = React.useState('config') // config | loading | quiz | result
   const [topic, setTopic] = React.useState(subject && subject !== 'Matemática' ? subject : '')
   const [count, setCount] = React.useState(5)
@@ -90,6 +93,7 @@ export default function Quiz() {
       const text = data?.choices?.[0]?.message?.content || ''
       const qs = parseQuestions(text)
       if (qs.length === 0) throw new Error('A IA não retornou questões válidas. Tente novamente.')
+      toast('Questões geradas com sucesso!', 'success')
       setQuestions(qs)
       setAnswers({})
       setRevealed({})
@@ -98,6 +102,7 @@ export default function Quiz() {
       setMode('quiz')
     } catch (e) {
       setError(e.message || 'Erro ao gerar questões.')
+      toast(e.message || 'Erro ao gerar questões.', 'error')
       setMode('config')
     }
   }
@@ -123,18 +128,35 @@ export default function Quiz() {
     setMode('config')
   }
 
+  React.useEffect(() => {
+    if (mode !== 'quiz' || !q) return
+    const handler = (e) => {
+      if (e.key >= '1' && e.key <= '5') {
+        const idx = Number(e.key) - 1
+        if (idx < q.opts.length) handleAnswer(q.id, idx)
+      } else if (e.key === 'Enter' || e.key === 'ArrowRight') {
+        if (current < questions.length - 1) setCurrent((c) => c + 1)
+        else finish()
+      } else if (e.key === 'ArrowLeft') {
+        setCurrent((c) => Math.max(0, c - 1))
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [mode, q, current, questions.length])
+
   const q = questions[current]
 
   return (
     <div className="pt-28 pb-24 max-w-3xl mx-auto px-6">
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="mb-8">
-        <div className="inline-flex items-center gap-2 glass rounded-full px-3 py-1 text-xs text-white/70 mb-4">
+        <div className="inline-flex items-center gap-2 glass rounded-full px-3 py-1 text-xs text-gray-600 dark:text-white/70 mb-4">
           <Target className="w-3 h-3 text-neon-cyan" /> Prática com IA
         </div>
         <h1 className="font-display text-4xl md:text-5xl font-bold tracking-tight">
           Quiz <span className="text-gradient">gerado por IA</span>
         </h1>
-        <p className="text-white/60 mt-3">
+        <p className="text-gray-600 dark:text-white/60 mt-3">
           Escolha o assunto e a IA cria questões de múltipla escolha no estilo ENEM.
         </p>
       </motion.div>
@@ -143,7 +165,7 @@ export default function Quiz() {
         {mode === 'config' && (
           <motion.div key="config" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="glass rounded-3xl p-8 space-y-6">
             <div>
-              <label className="block text-sm text-white/60 mb-2">Assunto</label>
+              <label className="block text-sm text-gray-600 dark:text-white/60 mb-2">Assunto</label>
               <input
                 value={topic}
                 onChange={(e) => setTopic(e.target.value)}
@@ -153,7 +175,7 @@ export default function Quiz() {
             </div>
 
             <div>
-              <label className="block text-sm text-white/60 mb-2">Quantidade de questões</label>
+              <label className="block text-sm text-gray-600 dark:text-white/60 mb-2">Quantidade de questões</label>
               <div className="flex items-center gap-3 flex-wrap">
                 <input
                   type="number"
@@ -177,6 +199,22 @@ export default function Quiz() {
               </div>
             </div>
 
+            {getFavorites().length > 0 && (
+              <div className="glass rounded-2xl p-4">
+                <div className="text-sm font-medium mb-2 flex items-center gap-2 text-gray-900 dark:text-white">
+                  <Star className="w-4 h-4 text-yellow-400" /> Favoritas ({getFavorites().length})
+                </div>
+                <div className="space-y-1 max-h-[160px] overflow-y-auto scrollbar-thin pr-1">
+                  {getFavorites().map((f) => (
+                    <div key={f.id} className="flex items-center justify-between text-xs p-2 rounded-lg bg-white/5 dark:bg-white/5">
+                      <span className="truncate flex-1 text-gray-700 dark:text-white/70">{f.q?.slice(0, 50) || f.id}</span>
+                      <button onClick={() => removeFavorite(f.id)} className="text-gray-400 dark:text-white/40 hover:text-rose-400 ml-2">✕</button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {error && <div className="text-rose-300 text-sm">{error}</div>}
 
             <button
@@ -191,15 +229,24 @@ export default function Quiz() {
         {mode === 'loading' && (
           <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="glass rounded-3xl p-12 text-center">
             <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-neon-cyan" />
-            <p className="text-white/70">{loadingMsg}</p>
+            <p className="text-gray-600 dark:text-white/70">{loadingMsg}</p>
           </motion.div>
         )}
 
         {mode === 'quiz' && q && (
           <motion.div key={current} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.4 }} className="glass rounded-3xl p-8">
             <div className="flex items-center justify-between mb-6">
-              <div className="text-xs text-white/50">Questão {current + 1} de {questions.length}</div>
-              <div className="text-xs text-white/50">{Object.keys(revealed).length} respondidas</div>
+              <div className="text-xs text-gray-500 dark:text-white/50">Questão {current + 1} de {questions.length}</div>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => toggleFavorite({ id: `quiz-${topic}-${q.id}`, topic, q: q.q, opts: q.opts, correct: q.correct, explain: q.explain, source: 'quiz' })}
+                  className={`p-1.5 rounded-lg transition-colors ${isFavorite(`quiz-${topic}-${q.id}`) ? 'text-yellow-400' : 'text-gray-400 dark:text-white/40 hover:text-gray-900 dark:hover:text-white'}`}
+                  title="Favoritar"
+                >
+                  <Star className="w-4 h-4" fill={isFavorite(`quiz-${topic}-${q.id}`) ? 'currentColor' : 'none'} />
+                </button>
+                <div className="text-xs text-gray-500 dark:text-white/50">{Object.keys(revealed).length} respondidas</div>
+              </div>
             </div>
             <div className="h-2 rounded-full bg-white/10 overflow-hidden mb-6">
               <div className="h-full bg-gradient-to-r from-neon-cyan to-neon-violet" style={{ width: `${((current + 1) / questions.length) * 100}%` }} />
@@ -259,9 +306,9 @@ export default function Quiz() {
                       {answers[q.id] === q.correct ? 'Correto!' : 'Resposta incorreta'}
                     </span>
                   </div>
-                  {q.explain && <p className="text-white/80 text-sm">{q.explain}</p>}
+                  {q.explain && <p className="text-gray-700 dark:text-white/80 text-sm">{q.explain}</p>}
                   {answers[q.id] !== q.correct && (
-                    <p className="text-white/70 text-sm mt-2">
+                    <p className="text-gray-600 dark:text-white/70 text-sm mt-2">
                       Gabarito: <span className="font-bold text-neon-cyan">{String.fromCharCode(65 + q.correct)}</span>
                     </p>
                   )}
@@ -302,11 +349,31 @@ export default function Quiz() {
               <div className="font-display text-6xl font-bold text-gradient mb-2">
                 {result.correctCount}/{result.total}
               </div>
-              <p className="text-white/60 mb-2">Acertos</p>
-              <p className="text-sm text-white/50">
+              <p className="text-gray-600 dark:text-white/60 mb-2">Acertos</p>
+              <p className="text-sm text-gray-500 dark:text-white/50">
                 {Math.round((result.correctCount / result.total) * 100)}% de aproveitamento
               </p>
             </div>
+
+            {questions.filter((q) => answers[q.id] !== q.correct).length > 0 && (
+              <div className="glass rounded-3xl p-8">
+                <h3 className="font-display text-xl font-bold mb-4">Revisar erros</h3>
+                <div className="space-y-4 max-h-[420px] overflow-y-auto scrollbar-thin pr-1">
+                  {questions
+                    .filter((q) => answers[q.id] !== q.correct)
+                    .map((q) => (
+                      <div key={q.id} className="p-4 rounded-xl bg-white/5 dark:bg-white/5">
+                        <div className="text-sm font-medium mb-2 text-gray-900 dark:text-white">{q.q}</div>
+                        <div className="text-xs text-gray-600 dark:text-white/60 mb-1">
+                          Sua resposta: {answers[q.id] !== undefined ? String.fromCharCode(65 + answers[q.id]) : '—'} · Gabarito: {String.fromCharCode(65 + q.correct)}
+                        </div>
+                        {q.explain && <p className="text-gray-700 dark:text-white/70 text-sm mt-2">{q.explain}</p>}
+                      </div>
+                    ))}
+                </div>
+              </div>
+            )}
+
             <div className="flex justify-center gap-3">
               <button onClick={reset} className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl font-semibold glass hover:bg-white/10">
                 <RotateCcw className="w-4 h-4" /> Novo quiz
