@@ -128,6 +128,8 @@ export default function Quiz() {
     setMode('config')
   }
 
+  const q = questions[current]
+
   React.useEffect(() => {
     if (mode !== 'quiz' || !q) return
     const handler = (e) => {
@@ -144,8 +146,6 @@ export default function Quiz() {
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
   }, [mode, q, current, questions.length])
-
-  const q = questions[current]
 
   return (
     <div className="pt-28 pb-24 max-w-3xl mx-auto px-6">
