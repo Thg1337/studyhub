@@ -29,31 +29,30 @@ export default function ChatAI({ open, onClose }) {
     setInput('')
     setTyping(true)
 
-    const apiKey = import.meta.env.VITE_GROQ_API_KEY
-    if (!apiKey) {
-      setMessages((m) => [...m, { role: 'assistant', text: '⚠️ API key do Groq não configurada. Defina VITE_GROQ_API_KEY no .env.' }])
-      setTyping(false)
-      return
-    }
-
     try {
       const apiMessages = [
         { role: 'system', content: SYSTEM_PROMPT },
         ...nextMessages.map((m) => ({ role: m.role, content: m.text }))
       ]
-      const res = await fetch(GROQ_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${apiKey}`
-        },
-        body: JSON.stringify({
-          model: GROQ_MODEL,
-          messages: apiMessages,
-          temperature: 0.7,
-          max_tokens: 512
+
+      const clientKey = import.meta.env.VITE_GROQ_API_KEY
+      let res
+      if (clientKey) {
+        // Dev local com chave exposta (não usado em produção)
+        res = await fetch(GROQ_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${clientKey}` },
+          body: JSON.stringify({ model: GROQ_MODEL, messages: apiMessages, temperature: 0.7, max_tokens: 512 })
         })
-      })
+      } else {
+        // Produção: proxy serverless (chave fica no servidor)
+        res = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ messages: apiMessages, temperature: 0.7, max_tokens: 512 })
+        })
+      }
+
       if (!res.ok) {
         const errText = await res.text()
         throw new Error(`${res.status} ${res.statusText} — ${errText.slice(0, 200)}`)

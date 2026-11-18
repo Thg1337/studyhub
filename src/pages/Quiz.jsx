@@ -54,28 +54,34 @@ export default function Quiz() {
     setMode('loading')
     setLoadingMsg('Gerando questões com IA...')
     try {
-      const apiKey = import.meta.env.VITE_GROQ_API_KEY
-      if (!apiKey) throw new Error('VITE_GROQ_API_KEY não configurada')
-      const res = await fetch(GROQ_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
-        body: JSON.stringify({
-          model: GROQ_MODEL,
-          messages: [
-            {
-              role: 'system',
-              content:
-                'Você é um gerador de questões de múltipla escolha no estilo ENEM. Responda APENAS com um array JSON válido, sem texto extra, sem markdown. Cada item: {"q":"enunciado","opts":["A","B","C","D","E"],"correct":0,"explain":"explicação curta"}. Gere questões claras, com 5 alternativas, nível ENEM.'
-            },
-            {
-              role: 'user',
-              content: `Gere ${count} questões de múltipla escolha (5 alternativas) sobre: ${t}. Retorne somente o JSON.`
-            }
-          ],
-          temperature: 0.8,
-          max_tokens: 2000
+      const clientKey = import.meta.env.VITE_GROQ_API_KEY
+      const messages = [
+        {
+          role: 'system',
+          content:
+            'Você é um gerador de questões de múltipla escolha no estilo ENEM. Responda APENAS com um array JSON válido, sem texto extra, sem markdown. Cada item: {"q":"enunciado","opts":["A","B","C","D","E"],"correct":0,"explain":"explicação curta"}. Gere questões claras, com 5 alternativas, nível ENEM.'
+        },
+        {
+          role: 'user',
+          content: `Gere ${count} questões de múltipla escolha (5 alternativas) sobre: ${t}. Retorne somente o JSON.`
+        }
+      ]
+
+      let res
+      if (clientKey) {
+        res = await fetch(GROQ_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${clientKey}` },
+          body: JSON.stringify({ model: GROQ_MODEL, messages, temperature: 0.8, max_tokens: 2000 })
         })
-      })
+      } else {
+        res = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ messages, temperature: 0.8, max_tokens: 2000 })
+        })
+      }
+
       if (!res.ok) {
         const txt = await res.text()
         throw new Error(`${res.status} ${res.statusText} — ${txt.slice(0, 150)}`)
