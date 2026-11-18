@@ -5,52 +5,10 @@ import { toggleFavorite, isFavorite, getFavorites, removeFavorite } from '../lib
 import { recordResult } from '../lib/spaced.js'
 import { recordStudy } from '../lib/progress.js'
 import { askAI } from '../lib/ai.js'
+import { estimatePerformance } from '../lib/score.js'
 
 const API_BASE = 'https://api.enem.dev/v1'
 const TIME_PER_QUESTION = 180
-
-function seededRand(seed) {
-  const x = Math.sin(seed * 9301 + 49297) * 233280
-  return x - Math.floor(x)
-}
-function triParams(index) {
-  return {
-    a: 1.0 + seededRand(index * 3 + 1) * 1.0,
-    b: seededRand(index * 7 + 2) * 4 - 2,
-    c: 0.1 + seededRand(index * 11 + 3) * 0.15
-  }
-}
-
-function triScore(responses) {
-  if (!responses.length) return 0
-  const allCorrect = responses.every((r) => r.correct)
-  const allIncorrect = responses.every((r) => !r.correct)
-  if (allCorrect) return 1000
-  if (allIncorrect) return 0
-  let theta = 0
-  for (let iter = 0; iter < 60; iter++) {
-    let num = 0
-    let info = 0
-    for (const r of responses) {
-      const e = Math.exp(-r.a * (theta - r.b))
-      const P = r.c + (1 - r.c) / (1 + e)
-      const dP = (r.a * (P - r.c) * (1 - P)) / (1 - r.c)
-      const u = r.correct ? 1 : 0
-      const denom = P * (1 - P)
-      if (denom <= 0) continue
-      num += (dP * (u - P)) / denom
-      info += (dP * dP) / denom
-    }
-    if (info <= 0) break
-    const delta = num / info
-    theta += delta
-    if (theta > 4) theta = 4
-    if (theta < -4) theta = -4
-    if (Math.abs(delta) < 1e-8) break
-  }
-  const score = 500 + 100 * theta
-  return Math.round(Math.max(0, Math.min(1000, score)))
-}
 
 const AREA_LABEL = {
   'ciencias-humanas': 'Ciências Humanas',
@@ -254,8 +212,7 @@ export default function Simulados({ onOpenChat }) {
         filtered = filtered.slice(0, Math.min(Math.max(1, quantity), filtered.length))
       }
 
-      const mapped = filtered.map((q, idx) => {
-        const params = triParams(idx)
+      const mapped = filtered.map((q) => {
         const correctIdx = q.alternatives.findIndex((a) => a.isCorrect)
         const opts = q.alternatives.map((a) => a.text || '(imagem)')
         const stem = [q.context, q.alternativesIntroduction].filter(Boolean).join('\n\n')
@@ -271,8 +228,7 @@ export default function Simulados({ onOpenChat }) {
           files: q.files || [],
           altFiles: q.alternatives.map((a) => a.file),
           opts,
-          correct: correctIdx,
-          ...params
+          correct: correctIdx
         }
       })
 
@@ -303,11 +259,11 @@ export default function Simulados({ onOpenChat }) {
       correctIndex: q.correct,
       correct: answers[q.id] === q.correct
     }))
-    const overall = triScore(responses)
+    const overall = estimatePerformance(responses)
     const areaNames = [...new Set(questions.map((q) => q.area))]
     const areas = {}
     for (const area of areaNames) {
-      areas[area] = triScore(responses.filter((r) => r.area === area))
+      areas[area] = estimatePerformance(responses.filter((r) => r.area === area))
     }
     const correctCount = responses.filter((r) => r.correct).length
     responses.forEach((r) => {
@@ -317,7 +273,8 @@ export default function Simulados({ onOpenChat }) {
     const entry = {
       date: new Date().toLocaleString('pt-BR'),
       year: yearsUsed.join(', '),
-      overall,
+      overall: overall.score,
+      method: 'performance-v2',
       correctCount,
       total: responses.length,
       disciplines: realExamMode ? DISCIPLINES : selectedDisciplines
@@ -352,10 +309,10 @@ export default function Simulados({ onOpenChat }) {
           <ClipboardList className="w-3 h-3 text-neon-cyan" /> Simulados ENEM
         </div>
         <h1 className="font-display text-4xl md:text-5xl font-bold tracking-tight">
-          Simulados com correção por <span className="text-gradient">TRI</span>
+          Simulados com <span className="text-gradient">análise de desempenho</span>
         </h1>
         <p className="text-gray-600 dark:text-white/60 mt-3 max-w-2xl">
-          Questões reais do ENEM (2009–2023) misturadas de vários anos, com estimativa ilustrativa de nota (não é a TRI oficial do INEP).
+          Questões reais do ENEM (2009–2023), com índice diagnóstico por área e faixa de incerteza. Não é previsão da nota oficial.
         </p>
       </motion.div>
 
@@ -403,11 +360,11 @@ export default function Simulados({ onOpenChat }) {
               </button>
             </div>
 
-            {history.length > 0 && (
+            {history.some((entry) => entry.method === 'performance-v2') && (
               <div className="glass rounded-3xl p-8">
                 <h2 className="font-display text-xl font-bold mb-4">Evolução das notas</h2>
-                <div className="flex items-end gap-2 h-32">
-                  {history.slice(0, 10).reverse().map((h, i) => (
+              <div className="flex items-end gap-2 h-32">
+                  {history.filter((h) => h.method === 'performance-v2').slice(0, 10).reverse().map((h, i) => (
                     <div key={i} className="flex-1 flex flex-col items-center gap-1">
                       <div
                         className="w-full bg-gradient-to-t from-neon-cyan to-neon-violet rounded-t-lg transition-all"
@@ -418,7 +375,7 @@ export default function Simulados({ onOpenChat }) {
                     </div>
                   ))}
                 </div>
-                <p className="text-xs text-gray-500 dark:text-white/50 mt-3">Últimas {Math.min(10, history.length)} tentativas (mais recente à direita)</p>
+                <p className="text-xs text-gray-500 dark:text-white/50 mt-3">Últimas tentativas no novo índice (mais recente à direita). Resultados antigos não são comparáveis.</p>
               </div>
             )}
 
@@ -466,7 +423,7 @@ export default function Simulados({ onOpenChat }) {
                         <div className="font-medium">{h.year} · {h.total} questões</div>
                         <div className="text-xs text-gray-500 dark:text-white/50">{h.date} · {h.disciplines.join(', ')}</div>
                       </div>
-                      <div className="font-display font-bold text-neon-cyan">{h.overall}</div>
+                      <div className="font-display font-bold text-neon-cyan">{h.overall} {h.method !== 'performance-v2' && <span className="text-xs font-normal">método anterior</span>}</div>
                     </div>
                   ))}
                 </div>
@@ -712,8 +669,10 @@ export default function Simulados({ onOpenChat }) {
         {mode === 'result' && result && (
           <motion.div key="result" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-6">
             <div className="glass rounded-3xl p-8 text-center">
-              <div className="font-display text-6xl font-bold text-gradient mb-2">{result.overall}</div>
-              <p className="text-gray-600 dark:text-white/60 mb-2">Estimativa ilustrativa (0–1000), não é nota oficial nem TRI calibrada pelo INEP</p>
+              <div className="font-display text-6xl font-bold text-gradient mb-2">{result.overall.score}</div>
+              <p className="text-gray-600 dark:text-white/60 mb-2">Índice de desempenho estimado (0–1000): {result.overall.low}–{result.overall.high}</p>
+              <p className="text-xs text-gray-500 dark:text-white/60 mb-2">Faixa estatística aproximada de 95% para a proporção de acertos, supondo questões comparáveis e independentes. Não é intervalo da nota TRI oficial.</p>
+              <p className="text-xs text-gray-500 dark:text-white/60 mb-2">Sem parâmetros calibrados das questões, a ordem dos acertos não permite estimar a TRI com segurança. Mesmo desempenho gera o mesmo índice, independentemente do embaralhamento.</p>
               <p className="text-sm text-gray-500 dark:text-white/50">{result.correctCount} acertos de {result.total}</p>
             </div>
             <div className="print-only">
@@ -727,15 +686,15 @@ export default function Simulados({ onOpenChat }) {
             </div>
 
             <div className="glass rounded-3xl p-8">
-              <h3 className="font-display text-xl font-bold mb-4">Notas por área do ENEM</h3>
+              <h3 className="font-display text-xl font-bold mb-4">Desempenho por área</h3>
               <div className="space-y-3">
-                {Object.entries(result.areas).map(([area, score]) => (
+                {Object.entries(result.areas).map(([area, estimate]) => (
                   <div key={area} className="flex items-center gap-4">
                     <div className="w-44 text-sm font-medium">{area}</div>
                     <div className="flex-1 h-2 rounded-full bg-white/10 overflow-hidden">
-                      <div className="h-full bg-gradient-to-r from-neon-cyan to-neon-violet" style={{ width: `${score / 10}%` }} />
+                      <div className="h-full bg-gradient-to-r from-neon-cyan to-neon-violet" style={{ width: `${estimate.score / 10}%` }} />
                     </div>
-                    <div className="w-12 text-right font-display font-bold text-sm">{score}</div>
+                    <div className="min-w-28 text-right text-sm"><strong>{estimate.score}</strong><div className="text-xs text-gray-500 dark:text-white/60">{estimate.correct}/{estimate.total} · {estimate.low}–{estimate.high}</div></div>
                   </div>
                 ))}
               </div>
