@@ -2,7 +2,7 @@ import React from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useParams } from 'react-router-dom'
 import { Brain, Sparkles, Loader2, CheckCircle2, XCircle, RotateCcw, Play, Target, Star } from 'lucide-react'
-import { toggleFavorite, isFavorite } from '../lib/favorites.js'
+import { toggleFavorite, isFavorite, updateFavoriteAnswer } from '../lib/favorites.js'
 import { recordResult, getDue } from '../lib/spaced.js'
 import { recordStudy, getProgress, getStreak, setDailyGoal, todayCount } from '../lib/progress.js'
 import { askAI } from '../lib/ai.js'
@@ -128,6 +128,7 @@ export default function Quiz({ onOpenChat }) {
     setRevealed((prev) => ({ ...prev, [qid]: true }))
     const q = questions.find((x) => x.id === qid)
     if (q) {
+      updateFavoriteAnswer(q.reviewId || `quiz-${sessionId}-${q.id}`, idx)
       recordResult({ id: q.reviewId || `quiz-${sessionId}-${q.id}`, topic: q.topic || topic, subject: q.subject || discipline, q: q.q, opts: q.opts, correct: q.correct, explain: q.explain, source: 'quiz' }, idx === q.correct)
       setProgress(recordStudy())
       if (idx !== q.correct) explainError(q, idx)
@@ -296,7 +297,7 @@ export default function Quiz({ onOpenChat }) {
               <div className="flex items-center gap-3">
                 <button
                   onClick={() => {
-                    toggleFavorite({ id: q.reviewId || `quiz-${sessionId}-${q.id}`, topic: q.topic || topic, subject: q.subject || discipline, q: q.q, opts: q.opts, correct: q.correct, explain: q.explain, source: 'quiz', files: q.files, altFiles: q.altFiles })
+                    toggleFavorite({ id: q.reviewId || `quiz-${sessionId}-${q.id}`, topic: q.topic || topic, subject: q.subject || discipline, q: q.q, opts: q.opts, correct: q.correct, explain: q.explain, source: 'quiz', files: q.files, altFiles: q.altFiles, userAnswer: answers[q.id] })
                     refreshFavorite((value) => value + 1)
                   }}
                   className={`p-1.5 rounded-lg transition-colors ${isFavorite(q.reviewId || `quiz-${sessionId}-${q.id}`) ? 'text-yellow-400' : 'text-gray-400 dark:text-white/40 hover:text-gray-900 dark:hover:text-white'}`}

@@ -1,7 +1,7 @@
 import React from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ClipboardList, BookOpen, Target, Brain, CheckCircle2, XCircle, RotateCcw, Play, Loader2, Globe, Image as ImageIcon, Timer, History, Shuffle, Star } from 'lucide-react'
-import { toggleFavorite, isFavorite } from '../lib/favorites.js'
+import { toggleFavorite, isFavorite, updateFavoriteAnswer } from '../lib/favorites.js'
 import { recordResult } from '../lib/spaced.js'
 import { recordStudy } from '../lib/progress.js'
 import { askAI } from '../lib/ai.js'
@@ -250,6 +250,7 @@ export default function Simulados({ onOpenChat }) {
 
   const handleAnswer = (qid, idx) => {
     setAnswers((prev) => ({ ...prev, [qid]: idx }))
+    updateFavoriteAnswer(`sim-${qid}`, idx)
   }
 
   const finish = React.useCallback(() => {
@@ -552,7 +553,7 @@ export default function Simulados({ onOpenChat }) {
               <div className="flex items-center gap-3">
                 <button
                   onClick={() => {
-                    toggleFavorite({ id: `sim-${q.id}`, year: q.year, area: q.area, q: q.q, opts: q.opts, correct: q.correct, files: q.files, altFiles: q.altFiles, source: 'simulado' })
+                    toggleFavorite({ id: `sim-${q.id}`, year: q.year, area: q.area, q: q.q, opts: q.opts, correct: q.correct, files: q.files, altFiles: q.altFiles, source: 'simulado', userAnswer: answers[q.id] })
                     refreshFavorite((value) => value + 1)
                   }}
                   className={`p-1.5 rounded-lg transition-colors ${isFavorite(`sim-${q.id}`) ? 'text-yellow-400' : 'text-gray-400 dark:text-white/40 hover:text-gray-900 dark:hover:text-white'}`}

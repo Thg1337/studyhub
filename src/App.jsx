@@ -77,7 +77,7 @@ export default function App() {
                   <Route path="/explore" element={<Explore />} />
                   <Route path="/simulados" element={<Simulados onOpenChat={(ctx) => { setChatContext(ctx); setChatOpen(true) }} />} />
                   <Route path="/flashcards" element={<Flashcards />} />
-                  <Route path="/favoritas" element={<Favoritas />} />
+                  <Route path="/favoritas" element={<Favoritas onOpenChat={(ctx) => { setChatContext(ctx); setChatOpen(true) }} />} />
                 </Routes>
               </motion.div>
             </AnimatePresence>

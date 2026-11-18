@@ -1,7 +1,8 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
-import { Image as ImageIcon, Search, Star, Trash2, X } from 'lucide-react'
-import { getFavorites, removeFavorite } from '../lib/favorites.js'
+import { Bot, CheckCircle2, Image as ImageIcon, Loader2, MessageCircle, Search, Sparkles, Star, Trash2, X, XCircle } from 'lucide-react'
+import { getFavorites, removeFavorite, updateFavoriteAnswer } from '../lib/favorites.js'
+import { askAI } from '../lib/ai.js'
 
 const IMAGE_PATTERN = /!\[([^\]]*)\]\((https?:\/\/[^\s)]+)(?:\s+"[^"]*")?\)/g
 
@@ -50,11 +51,33 @@ function groupName(item) {
   return name && name !== 'Não classificada' ? name : 'Outras matérias'
 }
 
-export default function Favoritas() {
+function hasImages(item) {
+  const containsImage = (text) => new RegExp(IMAGE_PATTERN.source).test(String(text || ''))
+  return Boolean(containsImage(item.q) || item.files?.some(Boolean) ||
+    item.altFiles?.some(Boolean) || item.opts?.some(containsImage))
+}
+
+function questionContext(item, selected) {
+  const alternatives = Array.isArray(item.opts)
+    ? item.opts.map((option, index) => `${String.fromCharCode(65 + index)}) ${option}`).join('\n')
+    : 'Alternativas indisponíveis.'
+  const answered = Number.isInteger(selected)
+  return `Questão favorita (${groupName(item)}):\n${item.q || 'Enunciado indisponível'}\nAlternativas:\n${alternatives}\n` +
+    (answered
+      ? `Resposta escolhida: ${String.fromCharCode(65 + selected)}) ${item.opts[selected]}\nGabarito: ${String.fromCharCode(65 + item.correct)}) ${item.opts[item.correct]}`
+      : 'O aluno ainda não respondeu. Dê apenas uma dica, sem revelar o gabarito.') +
+    (item.explain ? `\nExplicação existente: ${item.explain}` : '') +
+    (hasImages(item) ? '\nA questão contém imagens que não são enviadas à IA. Não afirme ter visto nem descreva detalhes visuais; se essenciais, peça ao aluno que descreva a figura.' : '')
+}
+
+export default function Favoritas({ onOpenChat }) {
   const [favorites, setFavorites] = React.useState(getFavorites)
   const [search, setSearch] = React.useState('')
   const [subject, setSubject] = React.useState('')
   const [zoom, setZoom] = React.useState(null)
+  const [explanations, setExplanations] = React.useState({})
+  const [loadingAI, setLoadingAI] = React.useState({})
+  const [revealed, setRevealed] = React.useState({})
   const subjects = [...new Set(favorites.map(groupName))].sort((a, b) => a.localeCompare(b, 'pt-BR'))
   const filtered = favorites.filter((item) => (!subject || groupName(item) === subject) &&
     `${item.q || ''} ${item.topic || ''} ${groupName(item)}`.toLocaleLowerCase('pt-BR').includes(search.toLocaleLowerCase('pt-BR')))
@@ -65,6 +88,35 @@ export default function Favoritas() {
   const remove = (id) => {
     removeFavorite(id)
     setFavorites(getFavorites())
+  }
+
+  const answer = (item, index) => {
+    updateFavoriteAnswer(item.id, index)
+    setFavorites(getFavorites())
+    setExplanations((previous) => { const next = { ...previous }; delete next[item.id]; return next })
+  }
+
+  const explain = async (item) => {
+    if (loadingAI[item.id]) return
+    const selected = item.userAnswer
+    setLoadingAI((previous) => ({ ...previous, [item.id]: true }))
+    setExplanations((previous) => { const next = { ...previous }; delete next[item.id]; return next })
+    try {
+      const system = Number.isInteger(selected)
+        ? selected === item.correct
+          ? 'Você é um tutor do ENEM. Explique por que a resposta do aluno está correta, com raciocínio passo a passo e uma dica de fixação. Use apenas os dados fornecidos.'
+          : 'Você é um tutor do ENEM. Explique de forma gentil e personalizada por que a alternativa que o aluno escolheu está errada e por que o gabarito está correto. Mostre o raciocínio passo a passo; não invente informações.'
+        : 'Você é um tutor do ENEM. Dê uma dica útil e um primeiro passo para resolver a questão, SEM revelar nem sugerir a letra do gabarito.'
+      const response = await askAI([
+        { role: 'system', content: `${system} Você recebe apenas texto; não analisa imagens. Se a imagem for essencial, reconheça a limitação e peça ao aluno para descrevê-la.` },
+        { role: 'user', content: questionContext(item, selected) }
+      ], { max_tokens: 650, temperature: 0.4 })
+      setExplanations((previous) => ({ ...previous, [item.id]: response }))
+    } catch (error) {
+      setExplanations((previous) => ({ ...previous, [item.id]: `Não foi possível consultar a IA: ${error.message}` }))
+    } finally {
+      setLoadingAI((previous) => ({ ...previous, [item.id]: false }))
+    }
   }
 
   React.useEffect(() => {
@@ -114,17 +166,42 @@ export default function Favoritas() {
               {item.files?.map((src, index) => <div key={`${src}-${index}`} className="mt-4"><PreviewImage src={src} alt={`Imagem do enunciado ${index + 1}`} onZoom={(url, alt) => setZoom({ src: url, alt })} /></div>)}
               {Array.isArray(item.opts) && <div className="mt-6 space-y-2">
                 {item.opts.map((option, index) => <div key={index}
-                  className={`rounded-xl border p-3 text-sm ${index === item.correct ? 'border-emerald-500/40 bg-emerald-500/10' : 'border-gray-200 bg-gray-100/40 dark:border-white/10 dark:bg-white/5'}`}>
+                  className={`rounded-xl border p-3 text-sm ${Number.isInteger(item.userAnswer) && index === item.correct ? 'border-emerald-500/50 bg-emerald-500/10' : Number.isInteger(item.userAnswer) && index === item.userAnswer ? 'border-rose-500/50 bg-rose-500/10' : 'border-gray-200 bg-gray-100/40 dark:border-white/10 dark:bg-white/5'}`}>
                   <div className="flex items-start gap-3">
-                    <span className="font-bold">{String.fromCharCode(65 + index)}</span>
+                    <button onClick={() => answer(item, index)} disabled={loadingAI[item.id]} aria-label={`Responder alternativa ${String.fromCharCode(65 + index)}`}
+                      className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-gray-300 font-bold hover:border-neon-cyan disabled:opacity-50 dark:border-white/20">{String.fromCharCode(65 + index)}</button>
                     <div className="min-w-0 flex-1"><QuestionText text={option} onZoom={(src, alt) => setZoom({ src, alt })} />
                       {item.altFiles?.[index] && <div className="mt-2"><PreviewImage src={item.altFiles[index]} alt={`Imagem da alternativa ${String.fromCharCode(65 + index)}`} onZoom={(src, alt) => setZoom({ src, alt })} /></div>}
                     </div>
                   </div>
                 </div>)}
               </div>}
-              {Number.isInteger(item.correct) && <p className="mt-4 text-sm font-semibold text-emerald-600 dark:text-emerald-400">Gabarito: {String.fromCharCode(65 + item.correct)}</p>}
-              {item.explain && <p className="mt-2 whitespace-pre-line text-sm text-gray-600 dark:text-white/65">{item.explain}</p>}
+              {Number.isInteger(item.userAnswer) && <div className={`mt-5 rounded-xl border p-4 ${item.userAnswer === item.correct ? 'border-emerald-500/40 bg-emerald-500/10' : 'border-rose-500/40 bg-rose-500/10'}`}>
+                <div className="flex items-center gap-2 font-semibold">
+                  {item.userAnswer === item.correct ? <CheckCircle2 className="h-5 w-5 text-emerald-500" /> : <XCircle className="h-5 w-5 text-rose-500" />}
+                  {item.userAnswer === item.correct ? 'Você acertou!' : `Você marcou ${String.fromCharCode(65 + item.userAnswer)}; o gabarito é ${String.fromCharCode(65 + item.correct)}.`}
+                </div>
+                {item.userAnswer !== item.correct && <p className="mt-2 text-sm">Sua escolha: {item.opts?.[item.userAnswer]} · Resposta correta: {item.opts?.[item.correct]}</p>}
+                {item.explain && <p className="mt-2 whitespace-pre-line text-sm text-gray-600 dark:text-white/70">{item.explain}</p>}
+              </div>}
+              {!Number.isInteger(item.userAnswer) && <p className="mt-4 text-sm text-gray-500 dark:text-white/60">Selecione uma alternativa para conferir sua resposta.</p>}
+              {!Number.isInteger(item.userAnswer) && Number.isInteger(item.correct) && <button onClick={() => setRevealed((previous) => ({ ...previous, [item.id]: true }))} className="mt-2 text-xs text-neon-cyan hover:underline">Ver gabarito sem responder</button>}
+              {revealed[item.id] && !Number.isInteger(item.userAnswer) && <p className="mt-2 text-sm font-semibold text-emerald-500">Gabarito: {String.fromCharCode(65 + item.correct)} — {item.opts?.[item.correct]}</p>}
+              {hasImages(item) && <p className="mt-4 text-xs text-amber-600 dark:text-amber-300">A IA lê o texto desta questão, mas não interpreta as imagens. Se a figura for importante, descreva-a no chat.</p>}
+              <div className="mt-5 flex flex-wrap gap-3">
+                <button onClick={() => explain(item)} disabled={loadingAI[item.id] || !Number.isInteger(item.correct) || !Array.isArray(item.opts)}
+                  className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-neon-cyan to-neon-violet px-4 py-2.5 text-sm font-semibold text-ink-950 disabled:opacity-50">
+                  {loadingAI[item.id] ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                  {Number.isInteger(item.userAnswer) ? 'IA: explicar minha resposta' : 'Pedir uma dica à IA'}
+                </button>
+                <button onClick={() => onOpenChat?.(questionContext(item, item.userAnswer))} className="inline-flex items-center gap-2 rounded-xl glass px-4 py-2.5 text-sm font-semibold">
+                  <MessageCircle className="h-4 w-4" /> Conversar com o tutor
+                </button>
+              </div>
+              {explanations[item.id] && <div role="status" className="mt-4 rounded-2xl border border-neon-violet/30 bg-neon-violet/10 p-5">
+                <div className="mb-2 flex items-center gap-2 font-semibold"><Bot className="h-5 w-5 text-neon-violet" /> Explicação do tutor</div>
+                <p className="whitespace-pre-line text-sm leading-relaxed">{explanations[item.id]}</p>
+              </div>}
             </article>)}
           </div>
         </section>
