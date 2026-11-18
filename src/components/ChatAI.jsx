@@ -2,19 +2,21 @@ import React from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Send, Sparkles, Bot, User } from 'lucide-react'
 
-const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions'
-const GROQ_MODEL = 'openai/gpt-oss-20b'
 const SYSTEM_PROMPT = `Você é um tutor de estudos amigável, didático e paciente. Responda em português do Brasil.
 Simplifique conceitos, use exemplos claros e curtos. Se o aluno errar, corrija com gentileza.
 Mantenha respostas concisas (até ~120 palavras) e focadas no aprendizado.`
 
-export default function ChatAI({ open, onClose }) {
+export default function ChatAI({ open, onClose, context }) {
   const [messages, setMessages] = React.useState([
     { role: 'assistant', text: 'Olá! Sou seu tutor de IA. Posso simplificar qualquer assunto. O que você gostaria de entender?' }
   ])
   const [input, setInput] = React.useState('')
   const [typing, setTyping] = React.useState(false)
   const scrollRef = React.useRef(null)
+
+  React.useEffect(() => {
+    setMessages([{ role: 'assistant', text: context ? 'Estou vendo a questão atual. O que você gostaria de entender?' : 'Olá! Sou seu tutor de IA. Posso simplificar qualquer assunto. O que você gostaria de entender?' }])
+  }, [context])
 
   React.useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight
@@ -30,28 +32,19 @@ export default function ChatAI({ open, onClose }) {
     setTyping(true)
 
     try {
+      const systemContent = context
+        ? `${SYSTEM_PROMPT}\n\nContexto atual (questão/assunto que o aluno está estudando):\n${context}`
+        : SYSTEM_PROMPT
       const apiMessages = [
-        { role: 'system', content: SYSTEM_PROMPT },
+        { role: 'system', content: systemContent },
         ...nextMessages.map((m) => ({ role: m.role, content: m.text }))
       ]
 
-      const clientKey = import.meta.env.VITE_GROQ_API_KEY
-      let res
-      if (clientKey) {
-        // Dev local com chave exposta (não usado em produção)
-        res = await fetch(GROQ_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${clientKey}` },
-          body: JSON.stringify({ model: GROQ_MODEL, messages: apiMessages, temperature: 0.7, max_tokens: 1024 })
-        })
-      } else {
-        // Produção: proxy serverless (chave fica no servidor)
-        res = await fetch('/api/chat', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ messages: apiMessages, temperature: 0.7, max_tokens: 1024 })
-        })
-      }
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: apiMessages, temperature: 0.7, max_tokens: 1024 })
+      })
 
       if (!res.ok) {
         const errText = await res.text()
@@ -93,7 +86,7 @@ export default function ChatAI({ open, onClose }) {
             className="relative w-full max-w-3xl h-[85vh] glass-strong rounded-3xl flex flex-col overflow-hidden shadow-glowv"
           >
             {/* header */}
-            <div className="px-6 py-4 border-b border-gray-200 dark:border-white/10 flex items-center justify-between">
+              <div className="px-6 py-4 border-b border-gray-200 dark:border-white/10 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-neon-cyan to-neon-violet flex items-center justify-center">
                   <Bot className="w-5 h-5 text-ink-950" />
@@ -105,6 +98,7 @@ export default function ChatAI({ open, onClose }) {
                   </div>
                 </div>
               </div>
+              {context && <div className="px-6 py-2 text-xs text-neon-cyan border-b border-white/10">Tutor com contexto da questão atual</div>}
               <button onClick={onClose} className="p-2 rounded-xl hover:bg-white/10 transition-colors">
                 <X className="w-5 h-5" />
               </button>

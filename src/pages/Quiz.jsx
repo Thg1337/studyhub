@@ -3,10 +3,10 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useParams } from 'react-router-dom'
 import { Brain, Sparkles, Loader2, CheckCircle2, XCircle, RotateCcw, Play, Target, Star } from 'lucide-react'
 import { toggleFavorite, isFavorite, getFavorites, removeFavorite } from '../lib/favorites.js'
+import { recordResult, getDue } from '../lib/spaced.js'
+import { recordStudy, getProgress, getStreak, setDailyGoal, todayCount } from '../lib/progress.js'
+import { askAI } from '../lib/ai.js'
 import { useToast } from '../components/Toast.jsx'
-
-const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions'
-const GROQ_MODEL = 'openai/gpt-oss-20b'
 
 function parseQuestions(text) {
   // Remove cercas de código markdown se houver
@@ -21,8 +21,8 @@ function parseQuestions(text) {
   return arr
     .map((q, i) => {
       const opts = Array.isArray(q.opts) ? q.opts : Array.isArray(q.options) ? q.options : []
-      const correct = Number.isInteger(q.correct) ? q.correct : (typeof q.answer === 'number' ? q.answer : 0)
-      const safeCorrect = Math.max(0, Math.min(opts.length - 1, correct))
+      const correct = Number.isInteger(q.correct) ? q.correct : q.answer
+      if (!Number.isInteger(correct) || correct < 0 || correct >= opts.length) return null
       // Embaralha as alternativas para que a correta não fique sempre em "A"
       const order = opts.map((_, idx) => idx)
       for (let j = order.length - 1; j > 0; j--) {
@@ -30,23 +30,24 @@ function parseQuestions(text) {
         ;[order[j], order[k]] = [order[k], order[j]]
       }
       const shuffledOpts = order.map((idx) => String(opts[idx]).trim())
-      const newCorrect = order.indexOf(safeCorrect)
+      const newCorrect = order.indexOf(correct)
       return {
         id: i + 1,
         q: String(q.q || q.question || '').trim(),
         opts: shuffledOpts,
-        correct: newCorrect >= 0 ? newCorrect : 0,
+        correct: newCorrect,
         explain: String(q.explain || q.explanation || '').trim()
       }
     })
-    .filter((q) => q.q && q.opts.length >= 2)
+    .filter((q) => q && q.q && q.opts.length === 5)
 }
 
-export default function Quiz() {
+export default function Quiz({ onOpenChat }) {
   const { subject } = useParams()
   const toast = useToast()
   const [mode, setMode] = React.useState('config') // config | loading | quiz | result
   const [topic, setTopic] = React.useState(subject && subject !== 'Matemática' ? subject : '')
+  const [discipline, setDiscipline] = React.useState('Não classificada')
   const [count, setCount] = React.useState(5)
   const [questions, setQuestions] = React.useState([])
   const [answers, setAnswers] = React.useState({})
@@ -55,6 +56,28 @@ export default function Quiz() {
   const [result, setResult] = React.useState(null)
   const [error, setError] = React.useState('')
   const [loadingMsg, setLoadingMsg] = React.useState('')
+  const [reviewing, setReviewing] = React.useState(false)
+  const [explanations, setExplanations] = React.useState({})
+  const [explaining, setExplaining] = React.useState({})
+  const [progress, setProgress] = React.useState(getProgress)
+  const [sessionId, setSessionId] = React.useState('')
+
+  const questionContext = (item, selected) => `Questão: ${item.q}\nAlternativas: ${item.opts.map((o, i) => `${String.fromCharCode(65 + i)}) ${o}`).join(' | ')}\nResposta do aluno: ${selected === undefined ? 'não respondida' : `${String.fromCharCode(65 + selected)}) ${item.opts[selected]}`}\nGabarito: ${String.fromCharCode(65 + item.correct)}) ${item.opts[item.correct]}\nExplicação existente: ${item.explain || 'não fornecida'}`
+
+  const explainError = async (item, selected = answers[item.id]) => {
+    setExplaining((prev) => ({ ...prev, [item.id]: true }))
+    try {
+      const text = await askAI([
+        { role: 'system', content: 'Você é tutor do ENEM. Explique em português por que a alternativa escolhida está errada e por que o gabarito está certo, com um exemplo breve. Não altere o gabarito informado.' },
+        { role: 'user', content: questionContext(item, selected) }
+      ])
+      setExplanations((prev) => ({ ...prev, [item.id]: text }))
+    } catch (e) {
+      setExplanations((prev) => ({ ...prev, [item.id]: `Não foi possível consultar a IA: ${e.message}` }))
+    } finally {
+      setExplaining((prev) => ({ ...prev, [item.id]: false }))
+    }
+  }
 
   const generate = async () => {
     const t = topic.trim()
@@ -66,7 +89,6 @@ export default function Quiz() {
     setMode('loading')
     setLoadingMsg('Gerando questões com IA...')
     try {
-      const clientKey = import.meta.env.VITE_GROQ_API_KEY
       const messages = [
         {
           role: 'system',
@@ -79,31 +101,14 @@ export default function Quiz() {
         }
       ]
 
-      let res
-      if (clientKey) {
-        res = await fetch(GROQ_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${clientKey}` },
-          body: JSON.stringify({ model: GROQ_MODEL, messages, temperature: 0.8, max_tokens: 2000 })
-        })
-      } else {
-        res = await fetch('/api/chat', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ messages, temperature: 0.8, max_tokens: 2000 })
-        })
-      }
-
-      if (!res.ok) {
-        const txt = await res.text()
-        throw new Error(`${res.status} ${res.statusText} — ${txt.slice(0, 150)}`)
-      }
-      const data = await res.json()
-      const text = data?.choices?.[0]?.message?.content || ''
+      const text = await askAI(messages, { temperature: 0.8, max_tokens: 3000 })
       const qs = parseQuestions(text)
       if (qs.length === 0) throw new Error('A IA não retornou questões válidas. Tente novamente.')
       toast('Questões geradas com sucesso!', 'success')
       setQuestions(qs)
+      setSessionId(crypto.randomUUID())
+      setReviewing(false)
+      setExplanations({})
       setAnswers({})
       setRevealed({})
       setCurrent(0)
@@ -120,6 +125,12 @@ export default function Quiz() {
     if (revealed[qid]) return
     setAnswers((prev) => ({ ...prev, [qid]: idx }))
     setRevealed((prev) => ({ ...prev, [qid]: true }))
+    const q = questions.find((x) => x.id === qid)
+    if (q) {
+      recordResult({ id: q.reviewId || `quiz-${sessionId}-${q.id}`, topic: q.topic || topic, subject: q.subject || discipline, q: q.q, opts: q.opts, correct: q.correct, explain: q.explain, source: 'quiz' }, idx === q.correct)
+      setProgress(recordStudy())
+      if (idx !== q.correct) explainError(q, idx)
+    }
   }
 
   const finish = () => {
@@ -134,6 +145,7 @@ export default function Quiz() {
     setRevealed({})
     setCurrent(0)
     setResult(null)
+    setReviewing(false)
     setMode('config')
   }
 
@@ -142,6 +154,7 @@ export default function Quiz() {
   React.useEffect(() => {
     if (mode !== 'quiz' || !q) return
     const handler = (e) => {
+      if (e.target instanceof HTMLElement && e.target.closest('input, textarea, [contenteditable="true"]')) return
       if (e.key >= '1' && e.key <= '5') {
         const idx = Number(e.key) - 1
         if (idx < q.opts.length) handleAnswer(q.id, idx)
@@ -182,6 +195,12 @@ export default function Quiz() {
                 className="w-full glass rounded-xl px-4 py-3 bg-transparent outline-none"
               />
             </div>
+            <div>
+              <label htmlFor="quiz-discipline" className="block text-sm text-gray-600 dark:text-white/60 mb-2">Matéria (para organizar favoritas)</label>
+              <select id="quiz-discipline" value={discipline} onChange={(e) => setDiscipline(e.target.value)} className="glass rounded-xl px-4 py-3 bg-transparent">
+                {['Não classificada', 'Matemática', 'Linguagens', 'Ciências Humanas', 'Ciências da Natureza'].map((name) => <option key={name} value={name} className="bg-ink-900">{name}</option>)}
+              </select>
+            </div>
 
             <div>
               <label className="block text-sm text-gray-600 dark:text-white/60 mb-2">Quantidade de questões</label>
@@ -208,16 +227,72 @@ export default function Quiz() {
               </div>
             </div>
 
+            <div className="glass rounded-2xl p-4 space-y-2">
+              <div className="font-semibold">Meta diária · {todayCount(progress)}/{progress.goal} questões · 🔥 {getStreak(progress)} dia(s)</div>
+              <label className="text-sm">Questões por dia: <input aria-label="Meta diária" type="number" min="1" max="200" value={progress.goal} onChange={(e) => setProgress(setDailyGoal(e.target.value))} className="w-20 ml-2 glass rounded-lg px-2 py-1 bg-transparent" /></label>
+              <div className="h-2 rounded-full bg-white/10"><div className="h-full rounded-full bg-neon-cyan" style={{ width: `${Math.min(100, todayCount(progress) / progress.goal * 100)}%` }} /></div>
+              <p className="text-xs text-gray-500 dark:text-white/60">Progresso salvo neste navegador.</p>
+            </div>
+            {getDue().filter((item) => Array.isArray(item.opts)).length > 0 && (
+              <div className="glass rounded-2xl p-4">
+                <div className="text-sm font-medium mb-2 text-gray-900 dark:text-white">
+                  📚 Revisão espaçada: {getDue().filter((item) => Array.isArray(item.opts)).length} questão(ões) pendente(s)
+                </div>
+                <button
+                  onClick={() => {
+                    const due = getDue().filter((item) => Array.isArray(item.opts))
+                    const qs = due.map((d, i) => ({
+                      id: i + 1,
+                      reviewId: d.id,
+                      topic: d.topic,
+                      subject: d.subject,
+                      q: d.q,
+                      opts: d.opts,
+                      correct: d.correct,
+                      explain: d.explain,
+                      files: d.files,
+                      altFiles: d.altFiles
+                    }))
+                    setQuestions(qs)
+                    setReviewing(true)
+                    setExplanations({})
+                    setAnswers({})
+                    setRevealed({})
+                    setCurrent(0)
+                    setResult(null)
+                    setMode('quiz')
+                    toast('Modo revisão iniciado!', 'info')
+                  }}
+                  className="px-4 py-2 rounded-xl text-sm font-semibold bg-gradient-to-r from-neon-cyan to-neon-violet text-ink-950"
+                >
+                  Revisar agora
+                </button>
+              </div>
+            )}
+
             {getFavorites().length > 0 && (
               <div className="glass rounded-2xl p-4">
                 <div className="text-sm font-medium mb-2 flex items-center gap-2 text-gray-900 dark:text-white">
                   <Star className="w-4 h-4 text-yellow-400" /> Favoritas ({getFavorites().length})
                 </div>
-                <div className="space-y-1 max-h-[160px] overflow-y-auto scrollbar-thin pr-1">
-                  {getFavorites().map((f) => (
-                    <div key={f.id} className="flex items-center justify-between text-xs p-2 rounded-lg bg-white/5 dark:bg-white/5">
-                      <span className="truncate flex-1 text-gray-700 dark:text-white/70">{f.q?.slice(0, 50) || f.id}</span>
-                      <button onClick={() => removeFavorite(f.id)} className="text-gray-400 dark:text-white/40 hover:text-rose-400 ml-2">✕</button>
+                <div className="space-y-2 max-h-[200px] overflow-y-auto scrollbar-thin pr-1">
+                  {Object.entries(
+                    getFavorites().reduce((acc, f) => {
+                      const key = f.subject || f.area || f.topic || 'Outros'
+                      ;(acc[key] = acc[key] || []).push(f)
+                      return acc
+                    }, {})
+                  ).map(([subj, items]) => (
+                    <div key={subj}>
+                      <div className="text-xs font-semibold text-neon-cyan mb-1">{subj} ({items.length})</div>
+                      {items.map((f) => (
+                        <details key={f.id} className="text-xs p-2 rounded-lg bg-white/5 dark:bg-white/5 mb-1">
+                          <summary className="cursor-pointer">{f.q?.slice(0, 80) || f.id}</summary>
+                          <p className="mt-2 whitespace-pre-line">{f.q}</p>
+                          <p className="mt-2">Gabarito: {f.opts?.[f.correct]}</p>
+                          <button onClick={() => removeFavorite(f.id)} className="text-rose-400 mt-2">Remover</button>
+                        </details>
+                      ))}
                     </div>
                   ))}
                 </div>
@@ -248,11 +323,11 @@ export default function Quiz() {
               <div className="text-xs text-gray-500 dark:text-white/50">Questão {current + 1} de {questions.length}</div>
               <div className="flex items-center gap-3">
                 <button
-                  onClick={() => toggleFavorite({ id: `quiz-${topic}-${q.id}`, topic, q: q.q, opts: q.opts, correct: q.correct, explain: q.explain, source: 'quiz' })}
-                  className={`p-1.5 rounded-lg transition-colors ${isFavorite(`quiz-${topic}-${q.id}`) ? 'text-yellow-400' : 'text-gray-400 dark:text-white/40 hover:text-gray-900 dark:hover:text-white'}`}
+                  onClick={() => toggleFavorite({ id: q.reviewId || `quiz-${sessionId}-${q.id}`, topic: q.topic || topic, subject: q.subject || discipline, q: q.q, opts: q.opts, correct: q.correct, explain: q.explain, source: 'quiz' })}
+                  className={`p-1.5 rounded-lg transition-colors ${isFavorite(q.reviewId || `quiz-${sessionId}-${q.id}`) ? 'text-yellow-400' : 'text-gray-400 dark:text-white/40 hover:text-gray-900 dark:hover:text-white'}`}
                   title="Favoritar"
                 >
-                  <Star className="w-4 h-4" fill={isFavorite(`quiz-${topic}-${q.id}`) ? 'currentColor' : 'none'} />
+                  <Star className="w-4 h-4" fill={isFavorite(q.reviewId || `quiz-${sessionId}-${q.id}`) ? 'currentColor' : 'none'} />
                 </button>
                 <div className="text-xs text-gray-500 dark:text-white/50">{Object.keys(revealed).length} respondidas</div>
               </div>
@@ -262,6 +337,7 @@ export default function Quiz() {
             </div>
 
             <h3 className="font-display text-xl md:text-2xl font-bold mb-6 leading-snug">{q.q}</h3>
+            {q.files?.map((file, i) => <img key={i} src={file} alt="Imagem da questão" className="max-w-full mb-4 rounded-xl" />)}
 
             <div className="space-y-3 mb-6">
               {q.opts.map((opt, i) => {
@@ -287,7 +363,8 @@ export default function Quiz() {
                       <span className="w-7 h-7 rounded-lg bg-white/10 flex items-center justify-center text-sm font-bold shrink-0">
                         {String.fromCharCode(65 + i)}
                       </span>
-                      <span className="text-sm">{opt}</span>
+                        <span className="text-sm">{opt}</span>
+                        {q.altFiles?.[i] && <img src={q.altFiles[i]} alt="Imagem da alternativa" className="max-w-full" />}
                     </span>
                   </button>
                 )
@@ -316,11 +393,13 @@ export default function Quiz() {
                     </span>
                   </div>
                   {q.explain && <p className="text-gray-700 dark:text-white/80 text-sm">{q.explain}</p>}
-                  {answers[q.id] !== q.correct && (
+                   {answers[q.id] !== q.correct && (
                     <p className="text-gray-600 dark:text-white/70 text-sm mt-2">
                       Gabarito: <span className="font-bold text-neon-cyan">{String.fromCharCode(65 + q.correct)}</span>
                     </p>
-                  )}
+                   )}
+                   {answers[q.id] !== q.correct && <p className="text-sm mt-3 whitespace-pre-line">{explaining[q.id] ? 'IA explicando seu erro…' : explanations[q.id] || <button onClick={() => explainError(q)} className="text-neon-cyan">Gerar explicação personalizada</button>}</p>}
+                   <button onClick={() => onOpenChat?.(questionContext(q, answers[q.id]))} className="mt-3 block text-xs text-neon-cyan hover:underline">Perguntar ao tutor sobre esta questão</button>
                 </motion.div>
               )}
             </AnimatePresence>
@@ -363,10 +442,19 @@ export default function Quiz() {
                 {Math.round((result.correctCount / result.total) * 100)}% de aproveitamento
               </p>
             </div>
+            <div className="print-only">
+              <h2>Questões e respostas</h2>
+              {questions.map((item, index) => <div key={item.id} className="print-question">
+                <strong>{index + 1}. {item.q}</strong>
+                {item.opts.map((option, i) => <p key={i}>{String.fromCharCode(65 + i)}) {option}</p>)}
+                <p>Sua resposta: {answers[item.id] === undefined ? 'Em branco' : String.fromCharCode(65 + answers[item.id])} · Gabarito: {String.fromCharCode(65 + item.correct)}</p>
+                <p>{explanations[item.id] || item.explain}</p>
+              </div>)}
+            </div>
 
             {questions.filter((q) => answers[q.id] !== q.correct).length > 0 && (
               <div className="glass rounded-3xl p-8">
-                <h3 className="font-display text-xl font-bold mb-4">Revisar erros</h3>
+                <h3 className="font-display text-xl font-bold mb-4">Revisar erros {reviewing ? 'da revisão' : ''}</h3>
                 <div className="space-y-4 max-h-[420px] overflow-y-auto scrollbar-thin pr-1">
                   {questions
                     .filter((q) => answers[q.id] !== q.correct)
@@ -376,16 +464,26 @@ export default function Quiz() {
                         <div className="text-xs text-gray-600 dark:text-white/60 mb-1">
                           Sua resposta: {answers[q.id] !== undefined ? String.fromCharCode(65 + answers[q.id]) : '—'} · Gabarito: {String.fromCharCode(65 + q.correct)}
                         </div>
-                        {q.explain && <p className="text-gray-700 dark:text-white/70 text-sm mt-2">{q.explain}</p>}
+                         {q.explain && <p className="text-gray-700 dark:text-white/70 text-sm mt-2">{q.explain}</p>}
+                         {explanations[q.id] && <p className="text-sm whitespace-pre-line mt-2">{explanations[q.id]}</p>}
+                <button
+                  onClick={() => onOpenChat?.(questionContext(q, answers[q.id]))}
+                  className="mt-3 inline-flex items-center gap-2 text-xs text-neon-cyan hover:underline"
+                >
+                  💬 Perguntar ao tutor sobre esta questão
+                </button>
                       </div>
                     ))}
                 </div>
               </div>
             )}
 
-            <div className="flex justify-center gap-3">
+            <div className="flex justify-center gap-3 flex-wrap">
               <button onClick={reset} className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl font-semibold glass hover:bg-white/10">
                 <RotateCcw className="w-4 h-4" /> Novo quiz
+              </button>
+              <button onClick={() => window.print()} className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl font-semibold bg-gradient-to-r from-neon-cyan to-neon-violet text-ink-950 no-print">
+                Salvar como PDF
               </button>
               <button
                 onClick={() => { reset(); }}

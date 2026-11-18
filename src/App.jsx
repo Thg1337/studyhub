@@ -11,6 +11,7 @@ import { ThemeProvider } from './components/ThemeToggle.jsx'
 const Quiz = lazy(() => import('./pages/Quiz.jsx'))
 const Explore = lazy(() => import('./pages/Explore.jsx'))
 const Simulados = lazy(() => import('./pages/Simulados.jsx'))
+const Flashcards = lazy(() => import('./pages/Flashcards.jsx'))
 
 function PageFallback() {
   return (
@@ -24,13 +25,14 @@ function PageFallback() {
 
 export default function App() {
   const [chatOpen, setChatOpen] = useState(false)
+  const [chatContext, setChatContext] = useState('')
   const location = useLocation()
 
   return (
     <ThemeProvider>
       <ToastProvider>
         <div className="min-h-screen relative">
-          <Navbar onOpenChat={() => setChatOpen(true)} />
+          <Navbar onOpenChat={() => { setChatContext(''); setChatOpen(true) }} />
           <Suspense fallback={<PageFallback />}>
             <AnimatePresence mode="wait">
               <motion.div
@@ -70,14 +72,15 @@ export default function App() {
                       </main>
                     }
                   />
-                  <Route path="/quiz/:subject" element={<Quiz onOpenChat={() => setChatOpen(true)} />} />
+                  <Route path="/quiz/:subject" element={<Quiz onOpenChat={(ctx) => { setChatContext(ctx || ''); setChatOpen(true) }} />} />
                   <Route path="/explore" element={<Explore />} />
-                  <Route path="/simulados" element={<Simulados />} />
+                  <Route path="/simulados" element={<Simulados onOpenChat={(ctx) => { setChatContext(ctx); setChatOpen(true) }} />} />
+                  <Route path="/flashcards" element={<Flashcards />} />
                 </Routes>
               </motion.div>
             </AnimatePresence>
           </Suspense>
-          <ChatAI open={chatOpen} onClose={() => setChatOpen(false)} />
+          <ChatAI open={chatOpen} onClose={() => setChatOpen(false)} context={chatContext} />
         </div>
       </ToastProvider>
     </ThemeProvider>

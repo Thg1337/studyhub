@@ -2,6 +2,9 @@ import React from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ClipboardList, BookOpen, Target, Brain, CheckCircle2, XCircle, RotateCcw, Play, Loader2, Globe, Image as ImageIcon, Timer, History, Shuffle, Star } from 'lucide-react'
 import { toggleFavorite, isFavorite, getFavorites, removeFavorite } from '../lib/favorites.js'
+import { recordResult } from '../lib/spaced.js'
+import { recordStudy } from '../lib/progress.js'
+import { askAI } from '../lib/ai.js'
 
 const API_BASE = 'https://api.enem.dev/v1'
 const TIME_PER_QUESTION = 180
@@ -19,6 +22,7 @@ function triParams(index) {
 }
 
 function triScore(responses) {
+  if (!responses.length) return 0
   const allCorrect = responses.every((r) => r.correct)
   const allIncorrect = responses.every((r) => !r.correct)
   if (allCorrect) return 1000
@@ -94,11 +98,13 @@ function writeHistory(entry) {
   } catch {}
 }
 
-export default function Simulados() {
+export default function Simulados({ onOpenChat }) {
   const [mode, setMode] = React.useState('intro')
   const [language, setLanguage] = React.useState('ingles')
   const [mixYears, setMixYears] = React.useState(true)
   const [selectedYear, setSelectedYear] = React.useState('2023')
+  const [realExamMode, setRealExamMode] = React.useState(false)
+  const [totalTimeLeft, setTotalTimeLeft] = React.useState(330 * 60)
   const [showOnlyWrong, setShowOnlyWrong] = React.useState(false)
   const [selectedDisciplines, setSelectedDisciplines] = React.useState([...DISCIPLINES])
   const [quantity, setQuantity] = React.useState(20)
@@ -114,6 +120,22 @@ export default function Simulados() {
   const [timerActive, setTimerActive] = React.useState(false)
   const [history, setHistory] = React.useState(readHistory())
   const [yearsUsed, setYearsUsed] = React.useState([])
+  const [deadline, setDeadline] = React.useState(null)
+  const [explanations, setExplanations] = React.useState({})
+  const [explaining, setExplaining] = React.useState({})
+
+  const explainError = async (item) => {
+    setExplaining((prev) => ({ ...prev, [item.id]: true }))
+    try {
+      const selected = answers[item.id]
+      const text = await askAI([
+        { role: 'system', content: 'Tutor ENEM: explique por que a resposta escolhida está errada e por que o gabarito informado está certo. Se faltar informação no enunciado ou imagem, informe a limitação. Não altere o gabarito fornecido.' },
+        { role: 'user', content: `Enunciado: ${item.q}\nAlternativas: ${item.opts.map((o, i) => `${String.fromCharCode(65 + i)}) ${o}`).join(' | ')}\nResposta do aluno: ${selected === undefined ? 'em branco' : `${String.fromCharCode(65 + selected)}) ${item.opts[selected]}`}\nGabarito: ${String.fromCharCode(65 + item.correctIndex)}) ${item.opts[item.correctIndex]}` }
+      ])
+      setExplanations((prev) => ({ ...prev, [item.id]: text }))
+    } catch (e) { setExplanations((prev) => ({ ...prev, [item.id]: `IA indisponível: ${e.message}` })) }
+    finally { setExplaining((prev) => ({ ...prev, [item.id]: false })) }
+  }
 
   const toggleDiscipline = (d) => {
     setSelectedDisciplines((prev) =>
@@ -123,7 +145,7 @@ export default function Simulados() {
 
   // Timer por questão
   React.useEffect(() => {
-    if (mode !== 'exam' || !timerActive || !timerOn) return
+    if (mode !== 'exam' || realExamMode || !timerActive || !timerOn) return
     if (timeLeft <= 0) {
       if (current < questions.length - 1) setCurrent((c) => c + 1)
       else finish()
@@ -131,14 +153,27 @@ export default function Simulados() {
     }
     const id = setInterval(() => setTimeLeft((t) => t - 1), 1000)
     return () => clearInterval(id)
-  }, [mode, timerActive, timerOn, timeLeft, current, questions.length])
+  }, [mode, realExamMode, timerActive, timerOn, timeLeft, current, questions.length])
 
   React.useEffect(() => {
     if (mode === 'exam') setTimeLeft(TIME_PER_QUESTION)
   }, [current, mode])
 
+  // Timer total para modo prova real
+  React.useEffect(() => {
+    if (mode !== 'exam' || !realExamMode || !deadline) return
+    const tick = () => {
+      const remaining = Math.max(0, Math.ceil((deadline - Date.now()) / 1000))
+      setTotalTimeLeft(remaining)
+      if (!remaining) finishRef.current()
+    }
+    tick()
+    const id = setInterval(tick, 1000)
+    return () => clearInterval(id)
+  }, [mode, realExamMode, deadline])
+
   const fetchExam = async () => {
-    if (selectedDisciplines.length === 0) {
+    if (!realExamMode && selectedDisciplines.length === 0) {
       setError('Selecione ao menos uma disciplina.')
       return
     }
@@ -146,11 +181,14 @@ export default function Simulados() {
     setMode('loading')
     setLoadingMsg('Buscando questões de vários anos do ENEM...')
     try {
-      // Seleciona 2 anos aleatórios para misturar (evita rate limit da API)
-      const shuffledYears = mixYears ? shuffle(ALL_YEARS).slice(0, 2) : [selectedYear]
-      setYearsUsed(shuffledYears)
+      // No modo real, complementa anos até haver 45 itens válidos por área.
+      const shuffledYears = realExamMode
+        ? (mixYears ? shuffle(ALL_YEARS) : [selectedYear, ...ALL_YEARS.filter((y) => y !== selectedYear)])
+        : (mixYears ? shuffle(ALL_YEARS).slice(0, 2) : [selectedYear])
+      const loadedYears = []
       let all = []
       for (const y of shuffledYears) {
+        setLoadingMsg(`Buscando questões do ENEM ${y} (${loadedYears.length + 1}/${shuffledYears.length})...`)
         let cached = readCache(y)
         if (!cached) {
           cached = []
@@ -177,25 +215,44 @@ export default function Simulados() {
           writeCache(y, cached)
         }
         all = all.concat(cached)
+        loadedYears.push(y)
+        if (realExamMode) {
+          const eligible = all.filter((q) => Array.isArray(q.alternatives) && q.alternatives.length === 5 &&
+            q.alternatives.filter((a) => a.isCorrect).length === 1 &&
+            (q.discipline !== 'linguagens' || q.language === null || q.language === language))
+          if (DISCIPLINES.every((d) => new Set(eligible.filter((q) => q.discipline === d).map((q) => `${q.year}-${q.index}`)).size >= 45)) break
+        }
         await new Promise((r) => setTimeout(r, 400))
       }
+      setYearsUsed(loadedYears)
 
       // Filtra por idioma das questões de Linguagens
       let filtered = all.filter((q) => {
+        if (!Array.isArray(q.alternatives) || q.alternatives.length !== 5 || q.alternatives.filter((a) => a.isCorrect).length !== 1) return false
         if (q.discipline !== 'linguagens') return true
         if (q.language === null) return true
         return q.language === language
       })
 
       // Filtra por disciplinas selecionadas
-      filtered = filtered.filter((q) => selectedDisciplines.includes(q.discipline))
+      filtered = filtered.filter((q) => realExamMode || selectedDisciplines.includes(q.discipline))
 
       if (filtered.length === 0) throw new Error('Nenhuma questão encontrada para os filtros selecionados.')
 
       if (shuffleOn) filtered = shuffle(filtered)
 
-      const qty = Math.min(Math.max(1, quantity), filtered.length)
-      filtered = filtered.slice(0, qty)
+      if (realExamMode) {
+        const byArea = DISCIPLINES.map((discipline) => {
+          const unique = new Map()
+          filtered.filter((q) => q.discipline === discipline).forEach((q) => unique.set(`${q.year}-${q.index}`, q))
+          return (shuffleOn ? shuffle([...unique.values()]) : [...unique.values()]).slice(0, 45)
+        })
+        if (byArea.some((area) => area.length !== 45)) throw new Error('Não foi possível completar 180 questões válidas. Tente novamente mais tarde.')
+        filtered = byArea.flat()
+        if (shuffleOn) filtered = shuffle(filtered)
+      } else {
+        filtered = filtered.slice(0, Math.min(Math.max(1, quantity), filtered.length))
+      }
 
       const mapped = filtered.map((q, idx) => {
         const params = triParams(idx)
@@ -203,7 +260,7 @@ export default function Simulados() {
         const opts = q.alternatives.map((a) => a.text || '(imagem)')
         const stem = [q.context, q.alternativesIntroduction].filter(Boolean).join('\n\n')
         return {
-          id: q.index,
+          id: `${q.year}-${q.index}`,
           year: q.year,
           discipline: q.discipline,
           area: AREA_LABEL[q.discipline] || q.discipline,
@@ -214,7 +271,7 @@ export default function Simulados() {
           files: q.files || [],
           altFiles: q.alternatives.map((a) => a.file),
           opts,
-          correct: correctIdx >= 0 ? correctIdx : 0,
+          correct: correctIdx,
           ...params
         }
       })
@@ -223,7 +280,10 @@ export default function Simulados() {
       setAnswers({})
       setCurrent(0)
       setResult(null)
-      setTimerActive(timerOn)
+      setExplanations({})
+      setTimerActive(!realExamMode && timerOn)
+      setTotalTimeLeft(330 * 60)
+      setDeadline(realExamMode ? Date.now() + 330 * 60 * 1000 : null)
       setMode('exam')
     } catch (e) {
       setError(e.message || 'Erro ao carregar a prova.')
@@ -237,6 +297,7 @@ export default function Simulados() {
 
   const finish = React.useCallback(() => {
     setTimerActive(false)
+    setDeadline(null)
     const responses = questions.map((q) => ({
       ...q,
       correctIndex: q.correct,
@@ -249,28 +310,37 @@ export default function Simulados() {
       areas[area] = triScore(responses.filter((r) => r.area === area))
     }
     const correctCount = responses.filter((r) => r.correct).length
+    responses.forEach((r) => {
+      if (answers[r.id] !== undefined) recordResult({ id: `sim-${r.id}`, topic: r.area, q: r.q, opts: r.opts, correct: r.correctIndex, files: r.files, altFiles: r.altFiles, source: 'simulado' }, r.correct)
+    })
+    recordStudy(Object.keys(answers).length)
     const entry = {
       date: new Date().toLocaleString('pt-BR'),
-      year: `Mix (${yearsUsed.join(', ')})`,
+      year: yearsUsed.join(', '),
       overall,
       correctCount,
       total: responses.length,
-      disciplines: selectedDisciplines
+      disciplines: realExamMode ? DISCIPLINES : selectedDisciplines
     }
     writeHistory(entry)
     setHistory(readHistory())
     setResult({ overall, areas, correctCount, total: responses.length, responses })
     setMode('result')
-  }, [questions, answers, yearsUsed, selectedDisciplines])
+  }, [questions, answers, yearsUsed, selectedDisciplines, realExamMode])
 
   const reset = () => {
     setQuestions([])
     setAnswers({})
     setCurrent(0)
     setResult(null)
+    setExplanations({})
     setTimerActive(false)
+    setDeadline(null)
     setMode('intro')
   }
+
+  const finishRef = React.useRef(finish)
+  React.useEffect(() => { finishRef.current = finish }, [finish])
 
   const q = questions[current]
   const formatTime = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
@@ -285,7 +355,7 @@ export default function Simulados() {
           Simulados com correção por <span className="text-gradient">TRI</span>
         </h1>
         <p className="text-gray-600 dark:text-white/60 mt-3 max-w-2xl">
-          Questões reais do ENEM (2009–2023) misturadas de vários anos, corrigidas pela Teoria de Resposta ao Item.
+          Questões reais do ENEM (2009–2023) misturadas de vários anos, com estimativa ilustrativa de nota (não é a TRI oficial do INEP).
         </p>
       </motion.div>
 
@@ -358,19 +428,25 @@ export default function Simulados() {
                   <Star className="w-5 h-5 text-yellow-400" />
                   <h2 className="font-display text-xl font-bold">Questões favoritas ({getFavorites().length})</h2>
                 </div>
-                <div className="space-y-2 max-h-[240px] overflow-y-auto scrollbar-thin pr-1">
-                  {getFavorites().map((f) => (
-                    <div key={f.id} className="flex items-center justify-between p-3 rounded-xl bg-white/5 dark:bg-white/5 text-sm">
-                      <div className="min-w-0 flex-1">
-                        <div className="font-medium truncate text-gray-900 dark:text-white">{f.q?.slice(0, 60) || f.id}</div>
-                        <div className="text-xs text-gray-500 dark:text-white/50">{f.source === 'quiz' ? 'Quiz' : 'Simulado'} · {f.year || f.topic || ''}</div>
-                      </div>
-                      <button
-                        onClick={() => removeFavorite(f.id)}
-                        className="text-gray-400 dark:text-white/40 hover:text-rose-400 text-xs ml-2"
-                      >
-                        Remover
-                      </button>
+                <div className="space-y-3 max-h-[280px] overflow-y-auto scrollbar-thin pr-1">
+                  {Object.entries(
+                    getFavorites().reduce((acc, f) => {
+                      const key = f.area || f.subject || f.topic || 'Outros'
+                      ;(acc[key] = acc[key] || []).push(f)
+                      return acc
+                    }, {})
+                  ).map(([subj, items]) => (
+                    <div key={subj}>
+                      <div className="text-xs font-semibold text-neon-cyan mb-1">{subj} ({items.length})</div>
+                      {items.map((f) => (
+                        <details key={f.id} className="p-2 rounded-xl bg-white/5 dark:bg-white/5 text-sm mb-1">
+                          <summary className="cursor-pointer">{f.q?.slice(0, 80) || f.id} · {f.year || f.topic || ''}</summary>
+                          <p className="whitespace-pre-line mt-2">{f.q}</p>
+                          {f.files?.map((file) => <img key={file} src={file} alt="Imagem da questão" className="max-w-full mt-2" />)}
+                          <p className="mt-2">Gabarito: {f.opts?.[f.correct]}</p>
+                          <button onClick={() => removeFavorite(f.id)} className="text-rose-400 mt-2">Remover</button>
+                        </details>
+                      ))}
                     </div>
                   ))}
                 </div>
@@ -461,10 +537,11 @@ export default function Simulados() {
             </div>
 
             <div>
-              <label className="block text-sm text-gray-600 dark:text-white/60 mb-2">Quantidade de questões (máx. depende dos filtros; prova completa ≈ 180)</label>
+              <label className="block text-sm text-gray-600 dark:text-white/60 mb-2">Quantidade de questões {realExamMode ? '(fixa: 180, 45 por área)' : '(máx. depende dos filtros)'}</label>
               <div className="flex items-center gap-3 flex-wrap">
                 <input
                   type="number"
+                  disabled={realExamMode}
                   min={1}
                   value={quantity}
                   onChange={(e) => setQuantity(Number(e.target.value) || 1)}
@@ -475,6 +552,7 @@ export default function Simulados() {
                     <button
                       key={n}
                       onClick={() => setQuantity(n)}
+                      disabled={realExamMode}
                       className="px-3 py-2 rounded-xl text-xs glass hover:bg-white/10"
                     >
                       {n}
@@ -482,6 +560,7 @@ export default function Simulados() {
                   ))}
                   <button
                     onClick={() => setQuantity(9999)}
+                    disabled={realExamMode}
                     className="px-3 py-2 rounded-xl text-xs glass hover:bg-white/10"
                   >
                     Todas
@@ -507,7 +586,16 @@ export default function Simulados() {
               >
                 <Timer className="w-4 h-4" /> Timer por questão: {timerOn ? 'Sim' : 'Não'}
               </button>
+              <button
+                onClick={() => setRealExamMode((s) => !s)}
+                className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
+                  realExamMode ? 'bg-rose-500/20 border border-rose-400/60' : 'glass hover:bg-white/10'
+                }`}
+              >
+                🎯 Modo prova real (180 questões, 5h30): {realExamMode ? 'Sim' : 'Não'}
+              </button>
             </div>
+            {realExamMode && <p className="text-sm text-gray-600 dark:text-white/70">45 questões por área, correção apenas no fim e cronômetro geral. Se um ano não tiver itens suficientes, outros anos serão usados. Simulação de treino: o ENEM oficial é aplicado em dois dias.</p>}
 
             {error && <div className="text-rose-300 text-sm">{error}</div>}
 
@@ -536,13 +624,13 @@ export default function Simulados() {
               <div className="text-xs text-gray-500 dark:text-white/50">Questão {current + 1} de {questions.length} · {q.area} · ENEM {q.year}</div>
               <div className="flex items-center gap-3">
                 <button
-                  onClick={() => toggleFavorite({ id: `sim-${q.year}-${q.id}`, year: q.year, area: q.area, q: q.q, opts: q.opts, correct: q.correct, source: 'simulado' })}
-                  className={`p-1.5 rounded-lg transition-colors ${isFavorite(`sim-${q.year}-${q.id}`) ? 'text-yellow-400' : 'text-gray-400 dark:text-white/40 hover:text-gray-900 dark:hover:text-white'}`}
+                  onClick={() => toggleFavorite({ id: `sim-${q.id}`, year: q.year, area: q.area, q: q.q, opts: q.opts, correct: q.correct, files: q.files, altFiles: q.altFiles, source: 'simulado' })}
+                  className={`p-1.5 rounded-lg transition-colors ${isFavorite(`sim-${q.id}`) ? 'text-yellow-400' : 'text-gray-400 dark:text-white/40 hover:text-gray-900 dark:hover:text-white'}`}
                   title="Favoritar"
                 >
-                  <Star className="w-4 h-4" fill={isFavorite(`sim-${q.year}-${q.id}`) ? 'currentColor' : 'none'} />
+                  <Star className="w-4 h-4" fill={isFavorite(`sim-${q.id}`) ? 'currentColor' : 'none'} />
                 </button>
-                {timerOn && (
+                {realExamMode ? <div className="font-mono text-sm" aria-label="Tempo restante da prova">⏱ {Math.floor(totalTimeLeft / 3600)}:{String(Math.floor(totalTimeLeft % 3600 / 60)).padStart(2, '0')}:{String(totalTimeLeft % 60).padStart(2, '0')}</div> : timerOn && (
                   <div className={`inline-flex items-center gap-1.5 text-xs font-mono px-3 py-1.5 rounded-lg ${timeLeft <= 30 ? 'bg-rose-500/20 text-rose-300' : 'glass'}`}>
                     <Timer className="w-3.5 h-3.5" /> {formatTime(timeLeft)}
                   </div>
@@ -595,7 +683,7 @@ export default function Simulados() {
             </div>
             <div className="flex items-center justify-between">
               <button
-                onClick={() => { setTimerActive(false); setCurrent((c) => Math.max(0, c - 1)); setTimerActive(timerOn) }}
+                      onClick={() => { setTimerActive(false); setCurrent((c) => Math.max(0, c - 1)); setTimerActive(!realExamMode && timerOn) }}
                 disabled={current === 0}
                 className="px-5 py-2.5 rounded-xl glass hover:bg-white/10 text-sm disabled:opacity-40"
               >
@@ -603,7 +691,7 @@ export default function Simulados() {
               </button>
               {current < questions.length - 1 ? (
                 <button
-                  onClick={() => { setTimerActive(false); setCurrent((c) => c + 1); setTimerActive(timerOn) }}
+                  onClick={() => { setTimerActive(false); setCurrent((c) => c + 1); setTimerActive(!realExamMode && timerOn) }}
                   className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-neon-cyan to-neon-violet text-ink-950 font-semibold text-sm"
                 >
                   Próxima →
@@ -617,6 +705,7 @@ export default function Simulados() {
                 </button>
               )}
             </div>
+            {realExamMode && <button onClick={() => { if (window.confirm('Finalizar a prova e corrigir agora?')) finish() }} className="mt-5 text-sm text-neon-cyan no-print">Finalizar prova antes do tempo</button>}
           </motion.div>
         )}
 
@@ -624,8 +713,17 @@ export default function Simulados() {
           <motion.div key="result" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-6">
             <div className="glass rounded-3xl p-8 text-center">
               <div className="font-display text-6xl font-bold text-gradient mb-2">{result.overall}</div>
-              <p className="text-gray-600 dark:text-white/60 mb-2">Nota TRI estimada (escala 0–1000)</p>
+              <p className="text-gray-600 dark:text-white/60 mb-2">Estimativa ilustrativa (0–1000), não é nota oficial nem TRI calibrada pelo INEP</p>
               <p className="text-sm text-gray-500 dark:text-white/50">{result.correctCount} acertos de {result.total}</p>
+            </div>
+            <div className="print-only">
+              <h2>Questões e respostas</h2>
+              {result.responses.map((item, index) => <div key={item.id} className="print-question">
+                <strong>{index + 1}. {item.area} · ENEM {item.year}: {item.q}</strong>
+                {item.files?.map((file) => <img key={file} src={file} alt="Imagem da questão" className="max-w-full" />)}
+                {item.opts.map((option, i) => <p key={i}>{String.fromCharCode(65 + i)}) {option} {item.altFiles?.[i] && <img src={item.altFiles[i]} alt="Alternativa ilustrada" className="max-w-full" />}</p>)}
+                <p>Sua resposta: {answers[item.id] === undefined ? 'Em branco' : String.fromCharCode(65 + answers[item.id])} · Gabarito: {String.fromCharCode(65 + item.correctIndex)}</p>
+              </div>)}
             </div>
 
             <div className="glass rounded-3xl p-8">
@@ -666,15 +764,23 @@ export default function Simulados() {
                       <div className="text-xs text-gray-600 dark:text-white/60">
                         Sua resposta: {answers[r.id] !== undefined ? String.fromCharCode(65 + answers[r.id]) : '—'} · Gabarito: {String.fromCharCode(65 + r.correctIndex)}
                       </div>
+                      {!r.correct && <div className="mt-2 text-sm">
+                        <button disabled={explaining[r.id]} onClick={() => explainError(r)} className="text-neon-cyan no-print">{explaining[r.id] ? 'Explicando…' : 'Explicar meu erro com IA'}</button>
+                        {explanations[r.id] && <p className="whitespace-pre-line mt-2">{explanations[r.id]}</p>}
+                      </div>}
+                      <button onClick={() => onOpenChat?.(`Questão: ${r.q}\nAlternativas: ${r.opts.map((o, i) => `${String.fromCharCode(65 + i)}) ${o}`).join(' | ')}\nSua resposta: ${answers[r.id] === undefined ? 'em branco' : r.opts[answers[r.id]]}\nGabarito: ${r.opts[r.correctIndex]}`)} className="text-xs text-neon-cyan mt-2 no-print">Perguntar ao tutor</button>
                     </div>
                   </div>
                 ))}
               </div>
             </div>
 
-            <div className="flex justify-center">
+            <div className="flex justify-center gap-3 flex-wrap">
               <button onClick={reset} className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl font-semibold glass hover:bg-white/10">
                 <RotateCcw className="w-4 h-4" /> Refazer simulado
+              </button>
+              <button onClick={() => window.print()} className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl font-semibold bg-gradient-to-r from-neon-cyan to-neon-violet text-ink-950 no-print">
+                Salvar como PDF
               </button>
             </div>
           </motion.div>

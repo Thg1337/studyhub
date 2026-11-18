@@ -4,9 +4,7 @@ import { useSearchParams } from 'react-router-dom'
 import { Search, Sparkles, Play, Loader2, BookOpen, Youtube } from 'lucide-react'
 import Skeleton from '../components/Skeleton.jsx'
 import { useToast } from '../components/Toast.jsx'
-
-const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions'
-const GROQ_MODEL = 'openai/gpt-oss-20b'
+import { askAI } from '../lib/ai.js'
 
 export default function Explore() {
   const [searchParams] = useSearchParams()
@@ -19,41 +17,19 @@ export default function Explore() {
   const [loadingVideos, setLoadingVideos] = React.useState(false)
   const [error, setError] = React.useState('')
   const [playingId, setPlayingId] = React.useState(null)
+  const [summary, setSummary] = React.useState('')
+  const [loadingSummary, setLoadingSummary] = React.useState(false)
 
   const fetchAI = async (t) => {
-    const clientKey = import.meta.env.VITE_GROQ_API_KEY
     const messages = [
       { role: 'system', content: 'Você é um tutor de estudos. Explique o assunto solicitado de forma clara, didática e em português do Brasil. Use tópicos e exemplos curtos. Até ~200 palavras.' },
       { role: 'user', content: `Explique o assunto: ${t}` }
     ]
-    let res
-    if (clientKey) {
-      res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${clientKey}` },
-        body: JSON.stringify({ model: 'openai/gpt-oss-20b', messages, temperature: 0.7, max_tokens: 1024 })
-      })
-    } else {
-      res = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages, temperature: 0.7, max_tokens: 1024 })
-      })
-    }
-    if (!res.ok) throw new Error(`${res.status} ${res.statusText}`)
-    const data = await res.json()
-    return data?.choices?.[0]?.message?.content?.trim() || 'Sem resposta.'
+    return askAI(messages)
   }
 
   const fetchVideos = async (t) => {
-    const clientKey = import.meta.env.VITE_YOUTUBE_API_KEY
-    let res
-    if (clientKey) {
-      const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(t + ' aula')}&type=video&maxResults=6&key=${clientKey}`
-      res = await fetch(url)
-    } else {
-      res = await fetch(`/api/youtube?q=${encodeURIComponent(t + ' aula')}&maxResults=6`)
-    }
+    const res = await fetch(`/api/youtube?q=${encodeURIComponent(t + ' aula')}&maxResults=6`)
     if (!res.ok) throw new Error(`${res.status} ${res.statusText}`)
     const data = await res.json()
     return (data.items || []).map((it) => ({
@@ -62,6 +38,24 @@ export default function Explore() {
       channel: it.snippet.channelTitle,
       thumb: it.snippet.thumbnails?.medium?.url || it.snippet.thumbnails?.default?.url
     }))
+  }
+
+  const fetchSummary = async () => {
+    const t = (topic || activeTopic).trim()
+    if (!t) { toast('Informe um assunto.', 'error'); return }
+    setLoadingSummary(true)
+    setSummary('')
+    try {
+      const messages = [
+        { role: 'system', content: 'Você é um tutor. Gere um resumo (cheat sheet) de 1 página sobre o assunto, em português, com tópicos curtos, fórmulas e pontos-chave para revisão rápida antes da prova. Use markdown simples (listas e negrito).' },
+        { role: 'user', content: `Resumo de revisão rápida sobre: ${t}` }
+      ]
+      setSummary(await askAI(messages, { temperature: 0.5, max_tokens: 1200 }))
+    } catch (e) {
+      toast(e.message || 'Erro ao gerar resumo.', 'error')
+    } finally {
+      setLoadingSummary(false)
+    }
   }
 
   const handleSearch = async (e) => {
@@ -151,6 +145,15 @@ export default function Explore() {
         >
           {loadingAI || loadingVideos ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
           Buscar
+        </button>
+        <button
+          type="button"
+          onClick={fetchSummary}
+          disabled={loadingSummary}
+          className="inline-flex items-center gap-2 px-5 py-3 rounded-2xl font-semibold glass hover:bg-white/10 dark:hover:bg-white/10 disabled:opacity-50"
+        >
+          {loadingSummary ? <Loader2 className="w-4 h-4 animate-spin" /> : <BookOpen className="w-4 h-4" />}
+          Resumo
         </button>
       </form>
 
@@ -258,6 +261,22 @@ export default function Explore() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {summary && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="glass rounded-3xl p-7 mt-6"
+        >
+          <div className="flex items-center gap-2 mb-4">
+            <BookOpen className="w-5 h-5 text-neon-cyan" />
+            <h2 className="font-display text-xl font-bold">Resumo de revisão rápida</h2>
+          </div>
+          <div className="text-gray-700 dark:text-white/80 leading-relaxed whitespace-pre-line text-sm">
+            {summary}
+          </div>
+        </motion.div>
+      )}
     </div>
   )
 }

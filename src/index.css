@@ -77,3 +77,14 @@ html:not(.dark) .grid-bg {
 .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
 
 ::selection { background: #a78bfa; color: #06070d; }
+.print-only { display: none; }
+
+@media print {
+  nav, header, button, .no-print { display: none !important; }
+  html, body, #root { height: auto !important; background: white !important; color: black !important; }
+  * { color: black !important; box-shadow: none !important; max-height: none !important; overflow: visible !important; }
+  .print-only { display: block !important; }
+  .print-question { break-inside: avoid; margin: 1rem 0; padding: .5rem; border-bottom: 1px solid #ccc; }
+  .glass, .glass-strong { background: white !important; border: 1px solid #ccc !important; backdrop-filter: none !important; }
+  .text-gradient { color: #000 !important; background: none !important; -webkit-text-fill-color: #000; }
+}
