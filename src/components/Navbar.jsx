@@ -32,6 +32,7 @@ export default function Navbar({ onOpenChat }) {
               { to: '/simulados', label: 'Simulados' },
               { to: '/flashcards', label: 'Flashcards' },
               { to: '/favoritas', label: 'Favoritas' },
+              { to: '/progresso', label: 'Progresso' },
               { to: '/quiz/Matemática', label: 'Prática' }
             ].map((l) => (
               <Link
@@ -77,6 +78,7 @@ export default function Navbar({ onOpenChat }) {
             <Link to="/simulados" onClick={() => setOpen(false)} className="px-4 py-2 rounded-xl text-sm hover:bg-white/5 dark:hover:bg-white/5">Simulados</Link>
             <Link to="/flashcards" onClick={() => setOpen(false)} className="px-4 py-2 rounded-xl text-sm hover:bg-white/5">Flashcards</Link>
             <Link to="/favoritas" onClick={() => setOpen(false)} className="px-4 py-2 rounded-xl text-sm hover:bg-white/5">Favoritas</Link>
+            <Link to="/progresso" onClick={() => setOpen(false)} className="px-4 py-2 rounded-xl text-sm hover:bg-white/5">Progresso</Link>
             <Link to="/quiz/Matemática" onClick={() => setOpen(false)} className="px-4 py-2 rounded-xl text-sm hover:bg-white/5">Prática</Link>
             <button onClick={() => { setOpen(false); onOpenChat() }} className="px-4 py-2 rounded-xl text-sm text-left bg-gradient-to-r from-neon-cyan to-neon-violet text-ink-950 font-semibold">Tutor IA</button>
           </motion.div>

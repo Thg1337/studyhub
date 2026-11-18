@@ -59,8 +59,9 @@ export default function Flashcards() {
     finally { setLoading(false) }
   }
 
-  const rate = (remembered) => {
-    recordResult({ id: card.id, topic: card.topic, front: card.front, back: card.back, source: 'flashcard' }, remembered)
+  const rate = (rating) => {
+    const remembered = rating !== 'again'
+    recordResult({ id: card.id, topic: card.topic, front: card.front, back: card.back, source: 'flashcard' }, remembered, rating)
     setProgress(recordStudy())
     setFlipped(false)
     if (onlyDue) setCurrent((n) => Math.min(n, Math.max(0, visible.length - 2)))
@@ -112,7 +113,7 @@ export default function Flashcards() {
       <h2 className="text-2xl font-bold whitespace-pre-line">{card.front}</h2>
       {flipped ? <p className="border-t border-white/20 pt-5 whitespace-pre-line">{card.back}</p> : <button onClick={() => setFlipped(true)} className="text-neon-cyan">Mostrar resposta</button>}
       <div className="flex gap-3 flex-wrap">
-        {flipped && <><button onClick={() => rate(false)} className="px-4 py-2 rounded-xl glass">Errei · rever amanhã</button><button onClick={() => rate(true)} className="px-4 py-2 rounded-xl bg-neon-cyan text-ink-950">Acertei</button></>}
+        {flipped && <><button onClick={() => rate('again')} className="px-4 py-2 rounded-xl glass">Não lembrei · 1 dia</button><button onClick={() => rate('hard')} className="px-4 py-2 rounded-xl glass">Difícil</button><button onClick={() => rate('good')} className="px-4 py-2 rounded-xl bg-neon-cyan text-ink-950">Bom</button><button onClick={() => rate('easy')} className="px-4 py-2 rounded-xl bg-emerald-500 text-white">Fácil</button></>}
         <button onClick={() => { setCurrent((n) => (n + 1) % visible.length); setFlipped(false) }} className="px-4 py-2 rounded-xl glass">Próximo</button>
         <button onClick={() => setDeleteId(card.id)} className="inline-flex items-center gap-2 px-4 py-2 rounded-xl glass hover:border-rose-400/50 hover:text-rose-400 transition-colors"><Trash2 className="w-4 h-4" /> Excluir</button>
       </div>

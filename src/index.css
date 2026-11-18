@@ -78,6 +78,13 @@ html:not(.dark) .grid-bg {
 
 ::selection { background: #a78bfa; color: #06070d; }
 .print-only { display: none; }
+.skip-link { position: fixed; z-index: 200; top: -4rem; left: 1rem; padding: .75rem 1rem; border-radius: .75rem; background: #6fffe9; color: #06070d; font-weight: 700; transition: top .2s; }
+.skip-link:focus { top: 1rem; }
+:focus-visible { outline: 3px solid #6fffe9; outline-offset: 3px; }
+button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: .01ms !important; }
+}
 
 @media print {
   nav, header, button, .no-print { display: none !important; }

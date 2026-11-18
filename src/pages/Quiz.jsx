@@ -1,12 +1,20 @@
 import React from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { useParams } from 'react-router-dom'
+import { useParams, useSearchParams } from 'react-router-dom'
 import { Brain, Sparkles, Loader2, CheckCircle2, XCircle, RotateCcw, Play, Target, Star } from 'lucide-react'
 import { toggleFavorite, isFavorite, updateFavoriteAnswer } from '../lib/favorites.js'
 import { recordResult, getDue } from '../lib/spaced.js'
-import { recordStudy, getProgress, getStreak, setDailyGoal, todayCount } from '../lib/progress.js'
+import { recordStudy, recordAnswer, getProgress, getStreak, setDailyGoal, todayCount } from '../lib/progress.js'
 import { askAI } from '../lib/ai.js'
 import { useToast } from '../components/Toast.jsx'
+
+const DRAFT_KEY = 'studyhub_quiz_draft'
+function readDraft() {
+  try {
+    const draft = JSON.parse(localStorage.getItem(DRAFT_KEY) || 'null')
+    return Array.isArray(draft?.questions) && draft.questions.length ? draft : null
+  } catch { return null }
+}
 
 function parseQuestions(text) {
   // Remove cercas de código markdown se houver
@@ -44,10 +52,11 @@ function parseQuestions(text) {
 
 export default function Quiz({ onOpenChat }) {
   const { subject } = useParams()
+  const [searchParams] = useSearchParams()
   const toast = useToast()
   const [mode, setMode] = React.useState('config') // config | loading | quiz | result
-  const [topic, setTopic] = React.useState(subject && subject !== 'Matemática' ? subject : '')
-  const [discipline, setDiscipline] = React.useState('Não classificada')
+  const [topic, setTopic] = React.useState(searchParams.get('topic') || (subject && subject !== 'Matemática' ? subject : ''))
+  const [discipline, setDiscipline] = React.useState(subject === 'Matemática' ? 'Matemática' : 'Não classificada')
   const [count, setCount] = React.useState(5)
   const [questions, setQuestions] = React.useState([])
   const [answers, setAnswers] = React.useState({})
@@ -61,6 +70,8 @@ export default function Quiz({ onOpenChat }) {
   const [explaining, setExplaining] = React.useState({})
   const [progress, setProgress] = React.useState(getProgress)
   const [sessionId, setSessionId] = React.useState('')
+  const [questionStartedAt, setQuestionStartedAt] = React.useState(Date.now)
+  const [draft, setDraft] = React.useState(readDraft)
   const [, refreshFavorite] = React.useState(0)
 
   const questionContext = (item, selected) => `Questão: ${item.q}\nAlternativas: ${item.opts.map((o, i) => `${String.fromCharCode(65 + i)}) ${o}`).join(' | ')}\nResposta do aluno: ${selected === undefined ? 'não respondida' : `${String.fromCharCode(65 + selected)}) ${item.opts[selected]}`}\nGabarito: ${String.fromCharCode(65 + item.correct)}) ${item.opts[item.correct]}\nExplicação existente: ${item.explain || 'não fornecida'}`
@@ -130,6 +141,7 @@ export default function Quiz({ onOpenChat }) {
     if (q) {
       updateFavoriteAnswer(q.reviewId || `quiz-${sessionId}-${q.id}`, idx)
       recordResult({ id: q.reviewId || `quiz-${sessionId}-${q.id}`, topic: q.topic || topic, subject: q.subject || discipline, q: q.q, opts: q.opts, correct: q.correct, explain: q.explain, source: 'quiz' }, idx === q.correct)
+      recordAnswer({ subject: q.subject || discipline, correct: idx === q.correct, source: 'prática', durationMs: Date.now() - questionStartedAt })
       setProgress(recordStudy())
       if (idx !== q.correct) explainError(q, idx)
     }
@@ -148,10 +160,18 @@ export default function Quiz({ onOpenChat }) {
     setCurrent(0)
     setResult(null)
     setReviewing(false)
+    localStorage.removeItem(DRAFT_KEY)
+    setDraft(null)
     setMode('config')
   }
 
   const q = questions[current]
+  React.useEffect(() => { setQuestionStartedAt(Date.now()) }, [current, mode])
+  React.useEffect(() => {
+    if (mode !== 'quiz' || !questions.length) return
+    const next = { questions, answers, revealed, current, topic, discipline, sessionId, reviewing }
+    try { localStorage.setItem(DRAFT_KEY, JSON.stringify(next)); setDraft(next) } catch { /* rascunho opcional */ }
+  }, [mode, questions, answers, revealed, current, topic, discipline, sessionId, reviewing])
 
   React.useEffect(() => {
     if (mode !== 'quiz' || !q) return
@@ -189,8 +209,9 @@ export default function Quiz({ onOpenChat }) {
         {mode === 'config' && (
           <motion.div key="config" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="glass rounded-3xl p-8 space-y-6">
             <div>
-              <label className="block text-sm text-gray-600 dark:text-white/60 mb-2">Assunto</label>
+              <label htmlFor="quiz-topic" className="block text-sm text-gray-600 dark:text-white/60 mb-2">Assunto</label>
               <input
+                id="quiz-topic"
                 value={topic}
                 onChange={(e) => setTopic(e.target.value)}
                 placeholder="Ex: Fotossíntese, Revolução Francesa, Equações do 2º grau..."
@@ -271,6 +292,16 @@ export default function Quiz({ onOpenChat }) {
                 </button>
               </div>
             )}
+            {draft && (
+              <div className="rounded-2xl border border-neon-violet/40 bg-neon-violet/10 p-4">
+                <p className="font-semibold">Você tem um quiz em andamento</p>
+                <p className="mt-1 text-sm text-gray-600 dark:text-white/65">{Object.keys(draft.revealed || {}).length} de {draft.questions.length} questões respondidas.</p>
+                <button onClick={() => {
+                  setQuestions(draft.questions); setAnswers(draft.answers || {}); setRevealed(draft.revealed || {}); setCurrent(draft.current || 0)
+                  setTopic(draft.topic || ''); setDiscipline(draft.discipline || 'Não classificada'); setSessionId(draft.sessionId || crypto.randomUUID()); setReviewing(Boolean(draft.reviewing)); setMode('quiz')
+                }} className="mt-3 rounded-xl bg-neon-violet px-4 py-2 text-sm font-semibold text-white">Continuar quiz</button>
+              </div>
+            )}
 
             {error && <div className="text-rose-300 text-sm">{error}</div>}
 
@@ -311,6 +342,10 @@ export default function Quiz({ onOpenChat }) {
             </div>
             <div className="h-2 rounded-full bg-white/10 overflow-hidden mb-6">
               <div className="h-full bg-gradient-to-r from-neon-cyan to-neon-violet" style={{ width: `${((current + 1) / questions.length) * 100}%` }} />
+            </div>
+            <div className="mb-6 flex flex-wrap gap-2" aria-label="Navegação das questões">
+              {questions.map((item, index) => <button key={item.id} onClick={() => setCurrent(index)} aria-label={`Ir para questão ${index + 1}${revealed[item.id] ? ', respondida' : ''}`}
+                className={`h-8 w-8 rounded-lg text-xs font-semibold ${index === current ? 'bg-neon-cyan text-ink-950' : revealed[item.id] ? 'bg-emerald-500/20 text-emerald-500' : 'glass hover:bg-white/10'}`}>{index + 1}</button>)}
             </div>
 
             <h3 className="font-display text-xl md:text-2xl font-bold mb-6 leading-snug">{q.q}</h3>
@@ -375,8 +410,15 @@ export default function Quiz({ onOpenChat }) {
                       Gabarito: <span className="font-bold text-neon-cyan">{String.fromCharCode(65 + q.correct)}</span>
                     </p>
                    )}
-                   {answers[q.id] !== q.correct && <p className="text-sm mt-3 whitespace-pre-line">{explaining[q.id] ? 'IA explicando seu erro…' : explanations[q.id] || <button onClick={() => explainError(q)} className="text-neon-cyan">Gerar explicação personalizada</button>}</p>}
-                   <button onClick={() => onOpenChat?.(questionContext(q, answers[q.id]))} className="mt-3 block text-xs text-neon-cyan hover:underline">Perguntar ao tutor sobre esta questão</button>
+                    {answers[q.id] !== q.correct && <p className="text-sm mt-3 whitespace-pre-line">{explaining[q.id] ? 'IA explicando seu erro…' : explanations[q.id] || <button onClick={() => explainError(q)} className="text-neon-cyan">Gerar explicação personalizada</button>}</p>}
+                    <button onClick={() => onOpenChat?.(questionContext(q, answers[q.id]))} className="mt-3 block text-xs text-neon-cyan hover:underline">Perguntar ao tutor sobre esta questão</button>
+                    <div className="mt-4 flex flex-wrap gap-2" aria-label="Definir intervalo de revisão">
+                      <span className="w-full text-xs text-gray-500 dark:text-white/60">Como foi para lembrar?</span>
+                      {[['again', 'Não lembrei'], ['hard', 'Difícil'], ['good', 'Bom'], ['easy', 'Fácil']].map(([rating, label]) => <button key={rating} onClick={() => {
+                        recordResult({ id: q.reviewId || `quiz-${sessionId}-${q.id}`, topic: q.topic || topic, subject: q.subject || discipline, q: q.q, opts: q.opts, correct: q.correct, explain: q.explain, source: 'quiz' }, answers[q.id] === q.correct, rating)
+                        toast(`Revisão ajustada: ${label.toLowerCase()}.`, 'success')
+                      }} className="rounded-lg glass px-3 py-1.5 text-xs hover:border-neon-cyan/60">{label}</button>)}
+                    </div>
                 </motion.div>
               )}
             </AnimatePresence>

@@ -1,7 +1,7 @@
 import React from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { useSearchParams } from 'react-router-dom'
-import { Search, Sparkles, Play, Loader2, BookOpen, Youtube } from 'lucide-react'
+import { Link, useSearchParams } from 'react-router-dom'
+import { Search, Sparkles, Play, Loader2, BookOpen, Youtube, BrainCircuit, Calculator, ListChecks } from 'lucide-react'
 import Skeleton from '../components/Skeleton.jsx'
 import { useToast } from '../components/Toast.jsx'
 import { askAI } from '../lib/ai.js'
@@ -19,6 +19,7 @@ export default function Explore() {
   const [playingId, setPlayingId] = React.useState(null)
   const [summary, setSummary] = React.useState('')
   const [loadingSummary, setLoadingSummary] = React.useState(false)
+  const [summaryKind, setSummaryKind] = React.useState('resumo')
 
   const fetchAI = async (t) => {
     const messages = [
@@ -46,9 +47,15 @@ export default function Explore() {
     setLoadingSummary(true)
     setSummary('')
     try {
+      const instructions = {
+        resumo: 'Gere um resumo de revisão de 1 página, em tópicos curtos, com conceitos, fórmulas e pontos-chave. Use markdown simples.',
+        mapa: 'Gere um mapa mental em texto: assunto central, ramos principais e conexões, usando indentação clara. Inclua apenas conteúdos importantes para o ENEM.',
+        formulas: 'Gere uma folha de fórmulas e relações essenciais. Explique o significado de cada variável e quando usar cada fórmula. Se não houver fórmulas, apresente regras-chave.',
+        revisao: 'Gere uma revisão ativa de 5 minutos: 5 perguntas curtas, pausa para o aluno pensar e a resposta logo abaixo de cada pergunta.'
+      }
       const messages = [
-        { role: 'system', content: 'Você é um tutor. Gere um resumo (cheat sheet) de 1 página sobre o assunto, em português, com tópicos curtos, fórmulas e pontos-chave para revisão rápida antes da prova. Use markdown simples (listas e negrito).' },
-        { role: 'user', content: `Resumo de revisão rápida sobre: ${t}` }
+        { role: 'system', content: `Você é um tutor em português do Brasil. ${instructions[summaryKind]}` },
+        { role: 'user', content: `Assunto: ${t}` }
       ]
       setSummary(await askAI(messages, { temperature: 0.5, max_tokens: 1200 }))
     } catch (e) {
@@ -133,6 +140,7 @@ export default function Explore() {
 
       <form onSubmit={handleSearch} className="glass rounded-3xl p-4 flex items-center gap-3 mb-10">
         <input
+          aria-label="Assunto para explorar"
           value={topic}
           onChange={(e) => setTopic(e.target.value)}
           placeholder="Ex: Equações do 2º grau, Revolução Francesa, Fotossíntese..."
@@ -153,9 +161,19 @@ export default function Explore() {
           className="inline-flex items-center gap-2 px-5 py-3 rounded-2xl font-semibold glass hover:bg-white/10 dark:hover:bg-white/10 disabled:opacity-50"
         >
           {loadingSummary ? <Loader2 className="w-4 h-4 animate-spin" /> : <BookOpen className="w-4 h-4" />}
-          Resumo
+          Gerar material
         </button>
       </form>
+      <div className="mb-8 flex flex-wrap gap-2" aria-label="Tipo de material de estudo">
+        {[
+          ['resumo', BookOpen, 'Resumo'],
+          ['mapa', BrainCircuit, 'Mapa mental'],
+          ['formulas', Calculator, 'Fórmulas'],
+          ['revisao', ListChecks, 'Revisão 5 min']
+        ].map(([key, Icon, label]) => <button key={key} onClick={() => setSummaryKind(key)}
+          className={`inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm ${summaryKind === key ? 'bg-neon-cyan/20 border border-neon-cyan/60' : 'glass hover:bg-white/10'}`}><Icon className="h-4 w-4" />{label}</button>)}
+        <Link to={`/quiz/Matemática?topic=${encodeURIComponent(topic || activeTopic)}`} className="inline-flex items-center gap-2 rounded-xl glass px-3 py-2 text-sm hover:bg-white/10"><Sparkles className="h-4 w-4" />Praticar assunto</Link>
+      </div>
 
       {error && (
         <div className="glass rounded-2xl p-4 mb-8 border border-rose-400/40 text-rose-300 text-sm whitespace-pre-line">
@@ -270,7 +288,7 @@ export default function Explore() {
         >
           <div className="flex items-center gap-2 mb-4">
             <BookOpen className="w-5 h-5 text-neon-cyan" />
-            <h2 className="font-display text-xl font-bold">Resumo de revisão rápida</h2>
+            <h2 className="font-display text-xl font-bold">{({ resumo: 'Resumo de revisão', mapa: 'Mapa mental em texto', formulas: 'Fórmulas e regras', revisao: 'Revisão ativa de 5 minutos' })[summaryKind]}</h2>
           </div>
           <div className="text-gray-700 dark:text-white/80 leading-relaxed whitespace-pre-line text-sm">
             {summary}

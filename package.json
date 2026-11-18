@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "node --test tests/score.test.mjs tests/favorites.test.mjs"
+    "test": "node --test tests/score.test.mjs tests/favorites.test.mjs tests/study.test.mjs"
   },
   "dependencies": {
     "react": "^18.3.1",

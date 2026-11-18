@@ -13,6 +13,7 @@ const Explore = lazy(() => import('./pages/Explore.jsx'))
 const Simulados = lazy(() => import('./pages/Simulados.jsx'))
 const Flashcards = lazy(() => import('./pages/Flashcards.jsx'))
 const Favoritas = lazy(() => import('./pages/Favoritas.jsx'))
+const Progresso = lazy(() => import('./pages/Progresso.jsx'))
 
 function PageFallback() {
   return (
@@ -33,10 +34,13 @@ export default function App() {
     <ThemeProvider>
       <ToastProvider>
         <div className="min-h-screen relative">
+          <a href="#conteudo-principal" className="skip-link">Pular para o conteúdo principal</a>
           <Navbar onOpenChat={() => { setChatContext(''); setChatOpen(true) }} />
           <Suspense fallback={<PageFallback />}>
             <AnimatePresence mode="wait">
               <motion.div
+                id="conteudo-principal"
+                tabIndex="-1"
                 key={location.pathname}
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -47,7 +51,7 @@ export default function App() {
                   <Route
                     path="/"
                     element={
-                      <main>
+                      <main aria-label="Página inicial">
                         <Hero />
                         <SubjectCards />
                         <section className="max-w-6xl mx-auto px-6 py-24">
@@ -78,6 +82,7 @@ export default function App() {
                   <Route path="/simulados" element={<Simulados onOpenChat={(ctx) => { setChatContext(ctx); setChatOpen(true) }} />} />
                   <Route path="/flashcards" element={<Flashcards />} />
                   <Route path="/favoritas" element={<Favoritas onOpenChat={(ctx) => { setChatContext(ctx); setChatOpen(true) }} />} />
+                  <Route path="/progresso" element={<Progresso />} />
                 </Routes>
               </motion.div>
             </AnimatePresence>
