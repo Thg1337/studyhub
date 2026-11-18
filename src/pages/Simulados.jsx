@@ -1,7 +1,7 @@
 import React from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ClipboardList, BookOpen, Target, Brain, CheckCircle2, XCircle, RotateCcw, Play, Loader2, Globe, Image as ImageIcon, Timer, History, Shuffle, Star } from 'lucide-react'
-import { toggleFavorite, isFavorite, getFavorites, removeFavorite } from '../lib/favorites.js'
+import { toggleFavorite, isFavorite } from '../lib/favorites.js'
 import { recordResult } from '../lib/spaced.js'
 import { recordStudy } from '../lib/progress.js'
 import { askAI } from '../lib/ai.js'
@@ -81,6 +81,7 @@ export default function Simulados({ onOpenChat }) {
   const [deadline, setDeadline] = React.useState(null)
   const [explanations, setExplanations] = React.useState({})
   const [explaining, setExplaining] = React.useState({})
+  const [, refreshFavorite] = React.useState(0)
 
   const explainError = async (item) => {
     setExplaining((prev) => ({ ...prev, [item.id]: true }))
@@ -379,37 +380,6 @@ export default function Simulados({ onOpenChat }) {
               </div>
             )}
 
-            {getFavorites().length > 0 && (
-              <div className="glass rounded-3xl p-8">
-                <div className="flex items-center gap-2 mb-4">
-                  <Star className="w-5 h-5 text-yellow-400" />
-                  <h2 className="font-display text-xl font-bold">Questões favoritas ({getFavorites().length})</h2>
-                </div>
-                <div className="space-y-3 max-h-[280px] overflow-y-auto scrollbar-thin pr-1">
-                  {Object.entries(
-                    getFavorites().reduce((acc, f) => {
-                      const key = f.area || f.subject || f.topic || 'Outros'
-                      ;(acc[key] = acc[key] || []).push(f)
-                      return acc
-                    }, {})
-                  ).map(([subj, items]) => (
-                    <div key={subj}>
-                      <div className="text-xs font-semibold text-neon-cyan mb-1">{subj} ({items.length})</div>
-                      {items.map((f) => (
-                        <details key={f.id} className="p-2 rounded-xl bg-white/5 dark:bg-white/5 text-sm mb-1">
-                          <summary className="cursor-pointer">{f.q?.slice(0, 80) || f.id} · {f.year || f.topic || ''}</summary>
-                          <p className="whitespace-pre-line mt-2">{f.q}</p>
-                          {f.files?.map((file) => <img key={file} src={file} alt="Imagem da questão" className="max-w-full mt-2" />)}
-                          <p className="mt-2">Gabarito: {f.opts?.[f.correct]}</p>
-                          <button onClick={() => removeFavorite(f.id)} className="text-rose-400 mt-2">Remover</button>
-                        </details>
-                      ))}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
             {history.length > 0 && (
               <div className="glass rounded-3xl p-8">
                 <div className="flex items-center gap-2 mb-4">
@@ -581,9 +551,13 @@ export default function Simulados({ onOpenChat }) {
               <div className="text-xs text-gray-500 dark:text-white/50">Questão {current + 1} de {questions.length} · {q.area} · ENEM {q.year}</div>
               <div className="flex items-center gap-3">
                 <button
-                  onClick={() => toggleFavorite({ id: `sim-${q.id}`, year: q.year, area: q.area, q: q.q, opts: q.opts, correct: q.correct, files: q.files, altFiles: q.altFiles, source: 'simulado' })}
+                  onClick={() => {
+                    toggleFavorite({ id: `sim-${q.id}`, year: q.year, area: q.area, q: q.q, opts: q.opts, correct: q.correct, files: q.files, altFiles: q.altFiles, source: 'simulado' })
+                    refreshFavorite((value) => value + 1)
+                  }}
                   className={`p-1.5 rounded-lg transition-colors ${isFavorite(`sim-${q.id}`) ? 'text-yellow-400' : 'text-gray-400 dark:text-white/40 hover:text-gray-900 dark:hover:text-white'}`}
                   title="Favoritar"
+                  aria-label={isFavorite(`sim-${q.id}`) ? 'Remover das favoritas' : 'Adicionar às favoritas'}
                 >
                   <Star className="w-4 h-4" fill={isFavorite(`sim-${q.id}`) ? 'currentColor' : 'none'} />
                 </button>

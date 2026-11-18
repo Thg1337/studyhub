@@ -12,6 +12,7 @@ const Quiz = lazy(() => import('./pages/Quiz.jsx'))
 const Explore = lazy(() => import('./pages/Explore.jsx'))
 const Simulados = lazy(() => import('./pages/Simulados.jsx'))
 const Flashcards = lazy(() => import('./pages/Flashcards.jsx'))
+const Favoritas = lazy(() => import('./pages/Favoritas.jsx'))
 
 function PageFallback() {
   return (
@@ -76,6 +77,7 @@ export default function App() {
                   <Route path="/explore" element={<Explore />} />
                   <Route path="/simulados" element={<Simulados onOpenChat={(ctx) => { setChatContext(ctx); setChatOpen(true) }} />} />
                   <Route path="/flashcards" element={<Flashcards />} />
+                  <Route path="/favoritas" element={<Favoritas />} />
                 </Routes>
               </motion.div>
             </AnimatePresence>

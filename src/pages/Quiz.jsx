@@ -2,7 +2,7 @@ import React from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useParams } from 'react-router-dom'
 import { Brain, Sparkles, Loader2, CheckCircle2, XCircle, RotateCcw, Play, Target, Star } from 'lucide-react'
-import { toggleFavorite, isFavorite, getFavorites, removeFavorite } from '../lib/favorites.js'
+import { toggleFavorite, isFavorite } from '../lib/favorites.js'
 import { recordResult, getDue } from '../lib/spaced.js'
 import { recordStudy, getProgress, getStreak, setDailyGoal, todayCount } from '../lib/progress.js'
 import { askAI } from '../lib/ai.js'
@@ -61,6 +61,7 @@ export default function Quiz({ onOpenChat }) {
   const [explaining, setExplaining] = React.useState({})
   const [progress, setProgress] = React.useState(getProgress)
   const [sessionId, setSessionId] = React.useState('')
+  const [, refreshFavorite] = React.useState(0)
 
   const questionContext = (item, selected) => `Questão: ${item.q}\nAlternativas: ${item.opts.map((o, i) => `${String.fromCharCode(65 + i)}) ${o}`).join(' | ')}\nResposta do aluno: ${selected === undefined ? 'não respondida' : `${String.fromCharCode(65 + selected)}) ${item.opts[selected]}`}\nGabarito: ${String.fromCharCode(65 + item.correct)}) ${item.opts[item.correct]}\nExplicação existente: ${item.explain || 'não fornecida'}`
 
@@ -270,35 +271,6 @@ export default function Quiz({ onOpenChat }) {
               </div>
             )}
 
-            {getFavorites().length > 0 && (
-              <div className="glass rounded-2xl p-4">
-                <div className="text-sm font-medium mb-2 flex items-center gap-2 text-gray-900 dark:text-white">
-                  <Star className="w-4 h-4 text-yellow-400" /> Favoritas ({getFavorites().length})
-                </div>
-                <div className="space-y-2 max-h-[200px] overflow-y-auto scrollbar-thin pr-1">
-                  {Object.entries(
-                    getFavorites().reduce((acc, f) => {
-                      const key = f.subject || f.area || f.topic || 'Outros'
-                      ;(acc[key] = acc[key] || []).push(f)
-                      return acc
-                    }, {})
-                  ).map(([subj, items]) => (
-                    <div key={subj}>
-                      <div className="text-xs font-semibold text-neon-cyan mb-1">{subj} ({items.length})</div>
-                      {items.map((f) => (
-                        <details key={f.id} className="text-xs p-2 rounded-lg bg-white/5 dark:bg-white/5 mb-1">
-                          <summary className="cursor-pointer">{f.q?.slice(0, 80) || f.id}</summary>
-                          <p className="mt-2 whitespace-pre-line">{f.q}</p>
-                          <p className="mt-2">Gabarito: {f.opts?.[f.correct]}</p>
-                          <button onClick={() => removeFavorite(f.id)} className="text-rose-400 mt-2">Remover</button>
-                        </details>
-                      ))}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
             {error && <div className="text-rose-300 text-sm">{error}</div>}
 
             <button
@@ -323,9 +295,13 @@ export default function Quiz({ onOpenChat }) {
               <div className="text-xs text-gray-500 dark:text-white/50">Questão {current + 1} de {questions.length}</div>
               <div className="flex items-center gap-3">
                 <button
-                  onClick={() => toggleFavorite({ id: q.reviewId || `quiz-${sessionId}-${q.id}`, topic: q.topic || topic, subject: q.subject || discipline, q: q.q, opts: q.opts, correct: q.correct, explain: q.explain, source: 'quiz' })}
+                  onClick={() => {
+                    toggleFavorite({ id: q.reviewId || `quiz-${sessionId}-${q.id}`, topic: q.topic || topic, subject: q.subject || discipline, q: q.q, opts: q.opts, correct: q.correct, explain: q.explain, source: 'quiz', files: q.files, altFiles: q.altFiles })
+                    refreshFavorite((value) => value + 1)
+                  }}
                   className={`p-1.5 rounded-lg transition-colors ${isFavorite(q.reviewId || `quiz-${sessionId}-${q.id}`) ? 'text-yellow-400' : 'text-gray-400 dark:text-white/40 hover:text-gray-900 dark:hover:text-white'}`}
                   title="Favoritar"
+                  aria-label={isFavorite(q.reviewId || `quiz-${sessionId}-${q.id}`) ? 'Remover das favoritas' : 'Adicionar às favoritas'}
                 >
                   <Star className="w-4 h-4" fill={isFavorite(q.reviewId || `quiz-${sessionId}-${q.id}`) ? 'currentColor' : 'none'} />
                 </button>
