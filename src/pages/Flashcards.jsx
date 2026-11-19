@@ -153,8 +153,8 @@ export default function Flashcards() {
             <p className="mt-1 line-clamp-2 text-sm font-medium text-gray-800 dark:text-white/85">{cardToDelete.front}</p>
           </div>
           <div className="mt-7 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-            <button ref={cancelRef} onClick={() => setDeleteId(null)} className="rounded-xl border border-gray-200 dark:border-white/15 px-5 py-3 text-sm font-semibold hover:bg-gray-100 dark:hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon-cyan">Manter cartão</button>
-            <button ref={deleteButtonRef} onClick={confirmDelete} className="inline-flex items-center justify-center gap-2 rounded-xl bg-rose-500 px-5 py-3 text-sm font-semibold text-white hover:bg-rose-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-rose-400"><Trash2 className="h-4 w-4" /> Excluir cartão</button>
+            <button ref={cancelRef} onClick={() => setDeleteId(null)} className="rounded-xl border border-gray-200 dark:border-white/15 px-5 py-3 text-sm font-semibold hover:bg-gray-100 dark:hover:bg-white/10">Manter cartão</button>
+            <button ref={deleteButtonRef} onClick={confirmDelete} className="inline-flex items-center justify-center gap-2 rounded-xl bg-rose-500 px-5 py-3 text-sm font-semibold text-white hover:bg-rose-600"><Trash2 className="h-4 w-4" /> Excluir cartão</button>
           </div>
         </motion.div>
       </motion.div>}
