@@ -32,7 +32,10 @@ export default function Explore() {
 
   const fetchVideos = async (t) => {
     const res = await fetch(`/api/youtube?q=${encodeURIComponent(t + ' aula')}&maxResults=6`)
-    if (!res.ok) throw new Error(`${res.status} ${res.statusText}`)
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}))
+      throw new Error(data.error || `YouTube indisponível (${res.status})`)
+    }
     const data = await res.json()
     return (data.items || []).map((it) => ({
       id: it.id.videoId,

@@ -45,7 +45,35 @@ test('extrai host e protocolo dos headers de proxy', () => {
       'x-forwarded-proto': 'https'
     }
   }
-  assert.deepEqual(getRequestOrigin(req), { origin: SITE, expected: SITE })
+  assert.deepEqual(getRequestOrigin(req), { origin: SITE, expected: SITE, referer: '', secFetchSite: '' })
+})
+
+test('GET do mesmo site sem Origin passa por Sec-Fetch-Site', () => {
+  assert.equal(
+    isOriginAllowed({ origin: '', expected: SITE, secFetchSite: 'same-origin', allowedOrigins: [], isProd: true }),
+    true
+  )
+})
+
+test('GET do mesmo site sem Origin passa por Referer', () => {
+  assert.equal(
+    isOriginAllowed({ origin: '', expected: SITE, referer: `${SITE}/explore?topic=x`, allowedOrigins: [], isProd: true }),
+    true
+  )
+})
+
+test('GET sem Origin de outro site continua bloqueado', () => {
+  assert.equal(
+    isOriginAllowed({ origin: '', expected: SITE, secFetchSite: 'cross-site', referer: 'https://outro.example/', allowedOrigins: [], isProd: true }),
+    false
+  )
+})
+
+test('GET cross-site não se disfarça de same-origin', () => {
+  assert.equal(
+    isOriginAllowed({ origin: 'https://outro.example', expected: SITE, secFetchSite: 'cross-site', allowedOrigins: [], isProd: true }),
+    false
+  )
 })
 
 test('createOriginChecker usa ALLOWED_ORIGIN e NODE_ENV do ambiente', () => {
