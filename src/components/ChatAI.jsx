@@ -45,7 +45,11 @@ export default function ChatAI({ open, onClose, context }) {
 
       if (!res.ok) {
         const errText = await res.text()
-        throw new Error(`${res.status} ${res.statusText} — ${errText.slice(0, 200)}`)
+        let message = errText
+        try {
+          message = JSON.parse(errText)?.error || errText
+        } catch { /* resposta não era JSON */ }
+        throw new Error(message || `IA indisponível (${res.status})`)
       }
       const data = await res.json()
       const reply = data?.choices?.[0]?.message?.content?.trim() || 'Não consegui gerar uma resposta. Tente novamente.'

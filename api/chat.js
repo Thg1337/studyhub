@@ -1,11 +1,6 @@
-const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGIN || '').split(',').map((s) => s.trim()).filter(Boolean)
-const IS_PROD = process.env.NODE_ENV === 'production'
+import { createOriginChecker } from './_origin.js'
 
-function isAllowedOrigin(origin) {
-  if (ALLOWED_ORIGINS.length === 0) return !IS_PROD
-  if (!origin) return !IS_PROD
-  return ALLOWED_ORIGINS.includes(origin)
-}
+const isAllowedOrigin = createOriginChecker()
 
 function sanitizeMessages(messages) {
   if (!Array.isArray(messages)) return []
@@ -23,8 +18,7 @@ function sanitizeMessages(messages) {
 const ALLOWED_MODELS = /^[a-zA-Z0-9][a-zA-Z0-9._/\-]{0,79}$/
 
 export default async function handler(req, res) {
-  const origin = req.headers.origin
-  if (!isAllowedOrigin(origin)) {
+  if (!isAllowedOrigin(req)) {
     res.status(403).json({ error: 'Origem não permitida' })
     return
   }
