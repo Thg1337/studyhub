@@ -85,6 +85,15 @@ button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: .01ms !important; }
 }
+.display-title { letter-spacing: -0.04em; line-height: 0.92; text-wrap: balance; }
+.body-copy { max-width: 64ch; text-wrap: pretty; }
+.motion-card { transition: transform 180ms cubic-bezier(.22,1,.36,1), border-color 180ms cubic-bezier(.22,1,.36,1), background-color 180ms cubic-bezier(.22,1,.36,1); }
+.motion-card:hover { transform: translateY(-3px); }
+.motion-card:focus-within { transform: translateY(-2px); }
+.panel-grid { background-image: linear-gradient(rgba(255,255,255,.06) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.06) 1px, transparent 1px); background-size: 28px 28px; }
+html:not(.dark) .panel-grid { background-image: linear-gradient(rgba(0,0,0,.05) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,.05) 1px, transparent 1px); }
+.text-balance { text-wrap: balance; }
+.text-pretty { text-wrap: pretty; }
 
 @media print {
   nav, header, button, .no-print { display: none !important; }
