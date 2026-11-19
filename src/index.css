@@ -235,6 +235,72 @@ html:not(.dark) .glass-strong {
   animation-delay: var(--reveal-delay, 0ms);
 }
 
+/* ---------- entrada de página ---------- */
+.page-enter {
+  animation: page-in var(--duration-fast) var(--ease-smooth-out) both;
+}
+@keyframes page-in {
+  from { opacity: 0; transform: translateY(var(--distance-base, 8px)); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ---------- revelação no scroll ---------- */
+html.reveal-enabled [data-reveal] {
+  opacity: 0;
+  transform: translateY(14px);
+}
+html.reveal-enabled [data-reveal].is-revealed {
+  opacity: 1;
+  transform: translateY(0);
+  transition:
+    opacity var(--duration-slow) var(--ease-smooth-out) var(--reveal-delay, 0ms),
+    transform var(--duration-slow) var(--ease-smooth-out) var(--reveal-delay, 0ms);
+}
+/* Se algo dentro do bloco receber foco (teclado), mostra imediatamente. */
+html.reveal-enabled [data-reveal]:focus-within {
+  opacity: 1;
+  transform: none;
+  transition: none;
+}
+
+/* ---------- barras de progresso ---------- */
+.bar-smooth { transition: width var(--duration-fast) var(--ease-smooth-out); }
+.bar-grow-x {
+  transform-origin: left center;
+  animation: bar-grow-x var(--duration-slow) var(--ease-smooth-out) both;
+  animation-delay: var(--bar-delay, 0ms);
+}
+@keyframes bar-grow-x {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+.bar-grow-y {
+  transform-origin: bottom center;
+  animation: bar-grow-y var(--duration-slow) var(--ease-smooth-out) both;
+  animation-delay: var(--bar-delay, 0ms);
+}
+@keyframes bar-grow-y {
+  from { transform: scaleY(0); }
+  to { transform: scaleY(1); }
+}
+
+/* ---------- cartões e respostas ---------- */
+.card-in {
+  animation: card-in var(--duration-fast) var(--ease-smooth-out) both;
+}
+@keyframes card-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.answer-in {
+  animation: answer-in var(--duration-fast) var(--ease-smooth-out) both;
+  animation-delay: var(--answer-delay, 0ms);
+}
+@keyframes answer-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 /* ---------- hero ---------- */
 .hero-glow {
   position: absolute;
@@ -408,10 +474,12 @@ html:not(.dark) .text-neon-pink { color: #b4551f; }
     transition-duration: .01ms !important;
   }
   .reveal { opacity: 1; }
+  html.reveal-enabled [data-reveal] { opacity: 1; transform: none; transition: none; }
 }
 
 @media print {
   nav, header, footer, button, .no-print { display: none !important; }
+  [data-reveal] { opacity: 1 !important; transform: none !important; }
   html, body, #root { height: auto !important; background: #fff !important; color: #000 !important; }
   * { color: #000 !important; box-shadow: none !important; max-height: none !important; overflow: visible !important; }
   .print-only { display: block !important; }

@@ -10,6 +10,12 @@ import { estimatePerformance } from '../lib/score.js'
 
 const API_BASE = 'https://api.enem.dev/v1'
 const TIME_PER_QUESTION = 180
+const MODE_MOTION = {
+  initial: { opacity: 0, y: 8 },
+  animate: { opacity: 1, y: 0 },
+  exit: { opacity: 0 },
+  transition: { duration: 0.24, ease: [0.22, 1, 0.36, 1] }
+}
 
 const AREA_LABEL = {
   'ciencias-humanas': 'Ciências Humanas',
@@ -327,7 +333,7 @@ export default function Simulados({ onOpenChat }) {
 
       <AnimatePresence mode="wait">
         {mode === 'intro' && (
-          <motion.div key="intro" initial={false} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-8">
+          <motion.div key="intro" {...MODE_MOTION} className="space-y-8">
             <div className="glass rounded-3xl p-6 sm:p-8">
               <h2 className="font-display text-2xl font-bold mb-2">Iniciar simulado</h2>
               <p className="text-gray-600 dark:text-white/60 text-sm mb-6">As questões são sorteadas de vários anos (2009–2023) e misturadas, com filtros por disciplina, idioma e quantidade.</p>
@@ -424,7 +430,7 @@ export default function Simulados({ onOpenChat }) {
         )}
 
         {mode === 'config' && (
-          <motion.div key="config" initial={false} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="glass rounded-3xl p-8 space-y-6">
+          <motion.div key="config" {...MODE_MOTION} className="glass rounded-3xl p-8 space-y-6">
             <h2 className="font-display text-2xl font-bold">Configurar simulado</h2>
 
             <div>
@@ -560,14 +566,14 @@ export default function Simulados({ onOpenChat }) {
         )}
 
         {mode === 'loading' && (
-          <motion.div key="loading" initial={false} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="glass rounded-3xl p-12 text-center">
+          <motion.div key="loading" {...MODE_MOTION} className="glass rounded-3xl p-12 text-center">
             <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-neon-cyan" />
             <p className="text-gray-600 dark:text-white/70">{loadingMsg}</p>
           </motion.div>
         )}
 
         {mode === 'exam' && q && (
-          <motion.div key="exam" initial={false} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="glass rounded-3xl p-8">
+          <motion.div key="exam" {...MODE_MOTION} className="glass rounded-3xl p-8">
             <div className="flex items-center justify-between mb-6 flex-wrap gap-2">
               <div className="text-xs text-gray-500 dark:text-white/50">Questão {current + 1} de {questions.length} · {q.area} · ENEM {q.year}</div>
               <div className="flex items-center gap-3">
@@ -591,53 +597,60 @@ export default function Simulados({ onOpenChat }) {
               </div>
             </div>
             <div className="h-2 rounded-full bg-white/10 overflow-hidden mb-6">
-              <div className="h-full bg-gradient-to-r from-neon-cyan to-neon-violet" style={{ width: `${((current + 1) / questions.length) * 100}%` }} />
+              <div className="bar-smooth h-full bg-gradient-to-r from-neon-cyan to-neon-violet" style={{ width: `${((current + 1) / questions.length) * 100}%` }} />
             </div>
             <div className="mb-6 flex max-h-28 flex-wrap gap-1 overflow-y-auto scrollbar-thin pr-1" aria-label="Navegação das questões">
               {questions.map((item, index) => <button key={item.id} onClick={() => setCurrent(index)} aria-label={`Ir para questão ${index + 1}${answers[item.id] !== undefined ? ', respondida' : ''}`}
                 className={`h-7 w-7 rounded-md text-[10px] font-semibold ${index === current ? 'bg-neon-cyan text-ink-950' : answers[item.id] !== undefined ? 'bg-neon-violet/25 text-neon-violet' : 'glass hover:bg-white/10'}`}>{index + 1}</button>)}
             </div>
 
-            {q.files && q.files.length > 0 && (
-              <div className="mb-4 space-y-2">
-                {q.files.map((f, i) => {
-                  const src = safeImageUrl(f)
-                  return src ? <img key={i} src={src} alt={`imagem da questão ${q.id}`} className="max-w-full rounded-xl border border-gray-200 dark:border-white/10" /> : null
+            <motion.div
+              key={q.id}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.26, ease: [0.22, 1, 0.36, 1] }}
+            >
+              {q.files && q.files.length > 0 && (
+                <div className="mb-4 space-y-2">
+                  {q.files.map((f, i) => {
+                    const src = safeImageUrl(f)
+                    return src ? <img key={i} src={src} alt={`imagem da questão ${q.id}`} className="max-w-full rounded-xl border border-gray-200 dark:border-white/10" /> : null
+                  })}
+                </div>
+              )}
+
+              {q.q && (
+                <div className="mb-6 text-white/85 leading-relaxed whitespace-pre-line text-sm md:text-base max-h-[40vh] overflow-y-auto scrollbar-thin pr-2">
+                  {q.q}
+                </div>
+              )}
+
+              <div className="space-y-3 mb-8">
+                {q.opts.map((opt, i) => {
+                  const selected = answers[q.id] === i
+                  const altFile = q.altFiles?.[i]
+                  return (
+                    <button
+                      key={i}
+                      onClick={() => handleAnswer(q.id, i)}
+                      className={`w-full text-left px-5 py-4 rounded-2xl border transition-colors ${
+                        selected ? 'bg-neon-cyan/20 border-neon-cyan/60' : 'glass hover:bg-white/10 border-gray-200 dark:border-white/10'
+                      }`}
+                    >
+                      <span className="inline-flex items-start gap-3">
+                        <span className="w-7 h-7 rounded-lg bg-white/10 flex items-center justify-center text-sm font-bold shrink-0">
+                          {String.fromCharCode(65 + i)}
+                        </span>
+                        <span className="text-sm flex-1">
+                          {opt}
+                          {safeImageUrl(altFile) && <img src={safeImageUrl(altFile)} alt="" className="mt-2 max-w-full rounded-lg" />}
+                        </span>
+                      </span>
+                    </button>
+                  )
                 })}
               </div>
-            )}
-
-            {q.q && (
-              <div className="mb-6 text-white/85 leading-relaxed whitespace-pre-line text-sm md:text-base max-h-[40vh] overflow-y-auto scrollbar-thin pr-2">
-                {q.q}
-              </div>
-            )}
-
-            <div className="space-y-3 mb-8">
-              {q.opts.map((opt, i) => {
-                const selected = answers[q.id] === i
-                const altFile = q.altFiles?.[i]
-                return (
-                  <button
-                    key={i}
-                    onClick={() => handleAnswer(q.id, i)}
-                    className={`w-full text-left px-5 py-4 rounded-2xl border transition-colors ${
-                      selected ? 'bg-neon-cyan/20 border-neon-cyan/60' : 'glass hover:bg-white/10 border-gray-200 dark:border-white/10'
-                    }`}
-                  >
-                    <span className="inline-flex items-start gap-3">
-                      <span className="w-7 h-7 rounded-lg bg-white/10 flex items-center justify-center text-sm font-bold shrink-0">
-                        {String.fromCharCode(65 + i)}
-                      </span>
-                      <span className="text-sm flex-1">
-                        {opt}
-                        {safeImageUrl(altFile) && <img src={safeImageUrl(altFile)} alt="" className="mt-2 max-w-full rounded-lg" />}
-                      </span>
-                    </span>
-                  </button>
-                )
-              })}
-            </div>
+            </motion.div>
             <div className="flex items-center justify-between">
               <button
                       onClick={() => { setTimerActive(false); setCurrent((c) => Math.max(0, c - 1)); setTimerActive(!realExamMode && timerOn) }}
@@ -667,7 +680,7 @@ export default function Simulados({ onOpenChat }) {
         )}
 
         {mode === 'result' && result && (
-          <motion.div key="result" initial={false} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-6">
+          <motion.div key="result" {...MODE_MOTION} className="space-y-6">
             <div className="glass rounded-3xl p-8 text-center">
               <div className="font-display text-6xl font-bold text-gradient mb-2">{result.overall.score}</div>
               <p className="text-gray-600 dark:text-white/60 mb-2">Índice de desempenho estimado (0–1000): {result.overall.low}–{result.overall.high}</p>

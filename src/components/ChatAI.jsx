@@ -111,9 +111,9 @@ export default function ChatAI({ open, onClose, context }) {
                 {messages.map((m, i) => (
                   <motion.div
                     key={i}
-                    initial={false}
+                    initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
-                    transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+                    transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
                     className={`flex gap-3 ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}
                   >
                     {m.role === 'assistant' && (
@@ -141,8 +141,9 @@ export default function ChatAI({ open, onClose, context }) {
 
               {typing && (
                 <motion.div
-                  initial={false}
+                  initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.2 }}
                   className="flex gap-3"
                 >
                   <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-neon-cyan to-neon-violet flex items-center justify-center shrink-0">

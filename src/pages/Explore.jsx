@@ -208,9 +208,9 @@ export default function Explore() {
       <AnimatePresence>
         {activeTopic && (
           <motion.div
-            initial={false}
+            initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
+            transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
             className="grid lg:grid-cols-2 gap-6 items-stretch"
           >
             {/* AI explanation */}
@@ -229,7 +229,7 @@ export default function Explore() {
                 </div>
               ) : (
                 <div className="flex-1 overflow-y-auto scrollbar-thin pr-1">
-                  <p className="text-gray-700 dark:text-white/80 leading-relaxed whitespace-pre-line">{aiText}</p>
+                  <p key={activeTopic} className="answer-in text-gray-700 dark:text-white/80 leading-relaxed whitespace-pre-line">{aiText}</p>
                 </div>
               )}
             </div>
@@ -255,7 +255,7 @@ export default function Explore() {
               ) : videos.length === 0 ? (
                 <p className="text-gray-500 dark:text-white/50 text-sm">Nenhum vídeo encontrado.</p>
               ) : (
-                <div className="space-y-4">
+                <div key={`videos-${activeTopic}`} className="answer-in space-y-4">
                   {/* Player */}
                   <div className="relative w-full aspect-video rounded-2xl overflow-hidden bg-black/60 border border-gray-200 dark:border-white/10">
                     {playingId && /^[a-zA-Z0-9_-]{11}$/.test(playingId) ? (

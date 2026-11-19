@@ -36,18 +36,18 @@ export default function Progresso() {
     <section className="mt-6 grid gap-6 lg:grid-cols-2">
       <article className="glass rounded-3xl p-6">
         <div className="flex items-center justify-between gap-4"><div><h2 className="font-display text-xl font-bold">Meta diária</h2><p className="mt-1 text-sm text-gray-600 dark:text-white/60">{todayCount(progress)} de {progress.goal} questões hoje</p></div><label className="text-sm">Meta <input aria-label="Meta diária de questões" type="number" min="1" max="200" value={progress.goal} onChange={(event) => setProgress(setDailyGoal(event.target.value))} className="ml-2 w-16 rounded-lg border border-gray-300 bg-transparent px-2 py-1 dark:border-white/20" /></label></div>
-        <div className="mt-5 h-3 overflow-hidden rounded-full bg-gray-200 dark:bg-white/10"><div className="h-full rounded-full bg-gradient-to-r from-neon-cyan to-neon-violet" style={{ width: `${Math.min(100, todayCount(progress) / progress.goal * 100)}%` }} /></div>
+        <div className="mt-5 h-3 overflow-hidden rounded-full bg-gray-200 dark:bg-white/10"><div className="bar-smooth bar-grow-x h-full rounded-full bg-gradient-to-r from-neon-cyan to-neon-violet" style={{ width: `${Math.min(100, todayCount(progress) / progress.goal * 100)}%` }} /></div>
       </article>
       <article className="glass rounded-3xl p-6">
         <h2 className="font-display text-xl font-bold">Atividade da semana</h2>
         {dashboard.total === 0 ? <p className="mt-6 text-sm text-gray-600 dark:text-white/60">Responda a primeira questão para desenhar o gráfico da semana.</p> : <div className="mt-6 flex h-36 items-end gap-3" aria-label="Questões respondidas nos últimos sete dias">
-          {dashboard.week.map((day) => <div key={day.key} className="flex flex-1 flex-col items-center gap-2"><span className="text-xs">{day.count || ''}</span><div className="w-full rounded-t-lg bg-gradient-to-t from-neon-cyan to-neon-violet" style={{ height: `${Math.max(day.count ? 12 : 3, day.count / max * 100)}%` }} title={`${day.count} questões`} /><span className="text-xs text-gray-500 dark:text-white/50">{day.label}</span></div>)}
+          {dashboard.week.map((day, index) => <div key={day.key} className="flex flex-1 flex-col items-center gap-2"><span className="text-xs">{day.count || ''}</span><div className="bar-grow-y w-full rounded-t-lg bg-gradient-to-t from-neon-cyan to-neon-violet" style={{ height: `${Math.max(day.count ? 12 : 3, day.count / max * 100)}%`, '--bar-delay': `${index * 45}ms` }} title={`${day.count} questões`} /><span className="text-xs text-gray-500 dark:text-white/50">{day.label}</span></div>)}
         </div>}
       </article>
     </section>
     <section className="mt-6 glass rounded-3xl p-6">
       <h2 className="font-display text-xl font-bold">Desempenho por matéria</h2>
-      {dashboard.bySubject.length ? <div className="mt-5 space-y-4">{dashboard.bySubject.sort((a, b) => b.total - a.total).map((item) => <div key={item.subject} className="grid gap-2 sm:grid-cols-[180px_1fr_100px] sm:items-center"><strong className="text-sm">{item.subject}</strong><div className="h-2 overflow-hidden rounded-full bg-gray-200 dark:bg-white/10"><div className="h-full rounded-full bg-neon-cyan" style={{ width: `${item.rate}%` }} /></div><span className="text-sm text-gray-600 dark:text-white/70">{item.rate}% · {item.correct}/{item.total}</span></div>)}</div> : <p className="mt-4 text-sm text-gray-600 dark:text-white/60">Responda questões na Prática ou nos Simulados para ver sua evolução aqui.</p>}
+      {dashboard.bySubject.length ? <div className="mt-5 space-y-4">{dashboard.bySubject.sort((a, b) => b.total - a.total).map((item, index) => <div key={item.subject} className="grid gap-2 sm:grid-cols-[180px_1fr_100px] sm:items-center"><strong className="text-sm">{item.subject}</strong><div className="h-2 overflow-hidden rounded-full bg-gray-200 dark:bg-white/10"><div className="bar-grow-x h-full rounded-full bg-neon-cyan" style={{ width: `${item.rate}%`, '--bar-delay': `${index * 50}ms` }} /></div><span className="text-sm text-gray-600 dark:text-white/70">{item.rate}% · {item.correct}/{item.total}</span></div>)}</div> : <p className="mt-4 text-sm text-gray-600 dark:text-white/60">Responda questões na Prática ou nos Simulados para ver sua evolução aqui.</p>}
     </section>
   </main>
 }

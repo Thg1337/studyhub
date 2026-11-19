@@ -14,7 +14,7 @@ const subjects = [
 export default function SubjectCards() {
   return (
     <section id="materias" className="mx-auto max-w-7xl scroll-mt-24 px-6 py-20 sm:py-24">
-      <div className="flex flex-wrap items-end justify-between gap-6 border-b border-line pb-8">
+      <div className="flex flex-wrap items-end justify-between gap-6 border-b border-line pb-8" data-reveal>
         <div>
           <p className="eyebrow">
             <span className="eyebrow-dot" aria-hidden="true" />
@@ -31,23 +31,29 @@ export default function SubjectCards() {
 
       <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {subjects.map((subject, index) => (
-          <Link
+          <div
             key={subject.name}
-            to={`/explore?topic=${encodeURIComponent(subject.name)}`}
-            className="subject-card lift group"
+            data-reveal
+            style={{ '--reveal-delay': `${index * 40}ms` }}
+            className="h-full"
           >
-            <div className="flex items-start justify-between">
-              <span className="subject-index">0{index + 1}</span>
-              <subject.icon className="h-5 w-5 text-faint transition-colors duration-200 group-hover:text-accent" aria-hidden="true" />
-            </div>
+            <Link
+              to={`/explore?topic=${encodeURIComponent(subject.name)}`}
+              className="subject-card lift group"
+            >
+              <div className="flex items-start justify-between">
+                <span className="subject-index">0{index + 1}</span>
+                <subject.icon className="h-5 w-5 text-faint transition-colors duration-200 group-hover:text-accent" aria-hidden="true" />
+              </div>
 
-            <h3 className="mt-8 font-display text-2xl font-bold tracking-tight">{subject.name}</h3>
-            <p className="mt-2 flex-1 text-sm leading-relaxed text-muted">{subject.desc}</p>
+              <h3 className="mt-8 font-display text-2xl font-bold tracking-tight">{subject.name}</h3>
+              <p className="mt-2 flex-1 text-sm leading-relaxed text-muted">{subject.desc}</p>
 
-            <span className="subject-cta mt-6">
-              Explorar matéria <ArrowUpRight className="h-3.5 w-3.5" aria-hidden="true" />
-            </span>
-          </Link>
+              <span className="subject-cta mt-6">
+                Explorar matéria <ArrowUpRight className="h-3.5 w-3.5" aria-hidden="true" />
+              </span>
+            </Link>
+          </div>
         ))}
       </div>
     </section>

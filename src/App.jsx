@@ -8,6 +8,7 @@ import Footer from './components/Footer.jsx'
 import ChatAI from './components/ChatAI.jsx'
 import { ToastProvider } from './components/Toast.jsx'
 import { ThemeProvider } from './components/ThemeToggle.jsx'
+import { useScrollReveal } from './lib/useScrollReveal.js'
 
 const Quiz = lazy(() => import('./pages/Quiz.jsx'))
 const Explore = lazy(() => import('./pages/Explore.jsx'))
@@ -46,24 +47,31 @@ function MethodSection() {
     <section id="metodo" className="mx-auto max-w-7xl scroll-mt-24 px-6 py-20 sm:py-24">
       <div className="grid gap-12 lg:grid-cols-[0.9fr_1.1fr] lg:gap-16">
         <div className="lg:sticky lg:top-28 lg:self-start">
-          <p className="eyebrow">
-            <span className="eyebrow-dot" aria-hidden="true" />
-            Método
-          </p>
-          <h2 className="display-title mt-4 max-w-md font-display text-3xl font-bold sm:text-4xl md:text-5xl">
-            Um ciclo que fecha: erro, explicação, revisão.
-          </h2>
-          <p className="body-copy mt-5 max-w-sm text-sm leading-relaxed text-muted">
-            Não é sobre responder mais. É sobre entender por que errou e voltar na hora certa.
-          </p>
-          <Link to="/progresso" className="btn btn-ghost mt-8">
-            Ver meu progresso <ArrowRight className="h-4 w-4" />
-          </Link>
+          <div data-reveal>
+            <p className="eyebrow">
+              <span className="eyebrow-dot" aria-hidden="true" />
+              Método
+            </p>
+            <h2 className="display-title mt-4 max-w-md font-display text-3xl font-bold sm:text-4xl md:text-5xl">
+              Um ciclo que fecha: erro, explicação, revisão.
+            </h2>
+            <p className="body-copy mt-5 max-w-sm text-sm leading-relaxed text-muted">
+              Não é sobre responder mais. É sobre entender por que errou e voltar na hora certa.
+            </p>
+            <Link to="/progresso" className="btn btn-ghost mt-8">
+              Ver meu progresso <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
         </div>
 
         <ol>
           {method.map((item, index) => (
-            <li key={item.title} className="grid gap-2 border-t border-line py-7 sm:grid-cols-[3rem_1fr]">
+            <li
+              key={item.title}
+              data-reveal
+              style={{ '--reveal-delay': `${index * 60}ms` }}
+              className="grid gap-2 border-t border-line py-7 sm:grid-cols-[3rem_1fr]"
+            >
               <span className="font-display text-sm font-semibold text-accent">0{index + 1}</span>
               <div>
                 <h3 className="font-display text-xl font-semibold tracking-tight">{item.title}</h3>
@@ -80,7 +88,7 @@ function MethodSection() {
 function ClosingBand() {
   return (
     <section className="mx-auto max-w-7xl px-6 pb-20 sm:pb-24">
-      <div className="cta-band">
+      <div className="cta-band" data-reveal>
         <p className="eyebrow">
           <span className="eyebrow-dot" aria-hidden="true" />
           Comece agora
@@ -106,6 +114,7 @@ export default function App() {
   const [chatOpen, setChatOpen] = useState(false)
   const [chatContext, setChatContext] = useState('')
   const location = useLocation()
+  useScrollReveal(location.pathname)
 
   return (
     <ThemeProvider>
@@ -114,7 +123,12 @@ export default function App() {
           <a href="#conteudo-principal" className="skip-link">Pular para o conteúdo principal</a>
           <Navbar onOpenChat={() => { setChatContext(''); setChatOpen(true) }} />
           <Suspense fallback={<PageFallback />}>
-            <div id="conteudo-principal" tabIndex="-1">
+            <div
+              key={location.pathname}
+              id="conteudo-principal"
+              tabIndex="-1"
+              className={location.pathname === '/' ? undefined : 'page-enter'}
+            >
               <Routes location={location}>
                 <Route
                   path="/"

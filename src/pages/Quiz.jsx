@@ -10,6 +10,12 @@ import { safeImageUrl } from '../lib/safeUrl.js'
 import { useToast } from '../components/Toast.jsx'
 
 const DRAFT_KEY = 'studyhub_quiz_draft'
+const MODE_MOTION = {
+  initial: { opacity: 0, y: 8 },
+  animate: { opacity: 1, y: 0 },
+  exit: { opacity: 0 },
+  transition: { duration: 0.24, ease: [0.22, 1, 0.36, 1] }
+}
 function readDraft() {
   try {
     const draft = JSON.parse(localStorage.getItem(DRAFT_KEY) || 'null')
@@ -208,7 +214,7 @@ export default function Quiz({ onOpenChat }) {
 
       <AnimatePresence mode="wait">
         {mode === 'config' && (
-          <motion.div key="config" initial={false} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="glass rounded-3xl p-8 space-y-6">
+          <motion.div key="config" {...MODE_MOTION} className="glass rounded-3xl p-8 space-y-6">
             <div>
               <label htmlFor="quiz-topic" className="block text-sm text-gray-600 dark:text-white/60 mb-2">Assunto</label>
               <input
@@ -254,7 +260,7 @@ export default function Quiz({ onOpenChat }) {
             <div className="glass rounded-2xl p-4 space-y-2">
               <div className="font-semibold">Meta diária · {todayCount(progress)}/{progress.goal} questões · 🔥 {getStreak(progress)} dia(s)</div>
               <label className="text-sm">Questões por dia: <input aria-label="Meta diária" type="number" min="1" max="200" value={progress.goal} onChange={(e) => setProgress(setDailyGoal(e.target.value))} className="w-20 ml-2 glass rounded-lg px-2 py-1 bg-transparent" /></label>
-              <div className="h-2 rounded-full bg-white/10"><div className="h-full rounded-full bg-neon-cyan" style={{ width: `${Math.min(100, todayCount(progress) / progress.goal * 100)}%` }} /></div>
+              <div className="h-2 rounded-full bg-white/10"><div className="bar-smooth h-full rounded-full bg-neon-cyan" style={{ width: `${Math.min(100, todayCount(progress) / progress.goal * 100)}%` }} /></div>
               <p className="text-xs text-gray-500 dark:text-white/60">Progresso salvo neste navegador.</p>
             </div>
             {getDue().filter((item) => Array.isArray(item.opts)).length > 0 && (
@@ -316,14 +322,14 @@ export default function Quiz({ onOpenChat }) {
         )}
 
         {mode === 'loading' && (
-          <motion.div key="loading" initial={false} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="glass rounded-3xl p-12 text-center">
+          <motion.div key="loading" {...MODE_MOTION} className="glass rounded-3xl p-12 text-center">
             <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-neon-cyan" />
             <p className="text-gray-600 dark:text-white/70">{loadingMsg}</p>
           </motion.div>
         )}
 
         {mode === 'quiz' && q && (
-          <motion.div key={current} initial={false} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.4 }} className="glass rounded-3xl p-8">
+          <motion.div key={current} {...MODE_MOTION} className="glass rounded-3xl p-8">
             <div className="flex items-center justify-between mb-6">
               <div className="text-xs text-gray-500 dark:text-white/50">Questão {current + 1} de {questions.length}</div>
               <div className="flex items-center gap-3">
@@ -342,7 +348,7 @@ export default function Quiz({ onOpenChat }) {
               </div>
             </div>
             <div className="h-2 rounded-full bg-white/10 overflow-hidden mb-6">
-              <div className="h-full bg-gradient-to-r from-neon-cyan to-neon-violet" style={{ width: `${((current + 1) / questions.length) * 100}%` }} />
+              <div className="bar-smooth h-full bg-gradient-to-r from-neon-cyan to-neon-violet" style={{ width: `${((current + 1) / questions.length) * 100}%` }} />
             </div>
             <div className="mb-6 flex flex-wrap gap-2" aria-label="Navegação das questões">
               {questions.map((item, index) => <button key={item.id} onClick={() => setCurrent(index)} aria-label={`Ir para questão ${index + 1}${revealed[item.id] ? ', respondida' : ''}`}
@@ -452,7 +458,7 @@ export default function Quiz({ onOpenChat }) {
         )}
 
         {mode === 'result' && result && (
-          <motion.div key="result" initial={false} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-6">
+          <motion.div key="result" {...MODE_MOTION} className="space-y-6">
             <div className="glass rounded-3xl p-8 text-center">
               <div className="font-display text-6xl font-bold text-gradient mb-2">
                 {result.correctCount}/{result.total}
