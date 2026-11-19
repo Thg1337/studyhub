@@ -5,6 +5,7 @@ import { toggleFavorite, isFavorite, updateFavoriteAnswer } from '../lib/favorit
 import { recordResult } from '../lib/spaced.js'
 import { recordStudy, recordAnswer } from '../lib/progress.js'
 import { askAI } from '../lib/ai.js'
+import { safeImageUrl } from '../lib/safeUrl.js'
 import { estimatePerformance } from '../lib/score.js'
 
 const API_BASE = 'https://api.enem.dev/v1'
@@ -584,9 +585,10 @@ export default function Simulados({ onOpenChat }) {
 
             {q.files && q.files.length > 0 && (
               <div className="mb-4 space-y-2">
-                {q.files.map((f, i) => (
-                  <img key={i} src={f} alt={`imagem da questão ${q.id}`} className="max-w-full rounded-xl border border-gray-200 dark:border-white/10" />
-                ))}
+                {q.files.map((f, i) => {
+                  const src = safeImageUrl(f)
+                  return src ? <img key={i} src={src} alt={`imagem da questão ${q.id}`} className="max-w-full rounded-xl border border-gray-200 dark:border-white/10" /> : null
+                })}
               </div>
             )}
 
@@ -614,7 +616,7 @@ export default function Simulados({ onOpenChat }) {
                       </span>
                       <span className="text-sm flex-1">
                         {opt}
-                        {altFile && <img src={altFile} alt="" className="mt-2 max-w-full rounded-lg" />}
+                        {safeImageUrl(altFile) && <img src={safeImageUrl(altFile)} alt="" className="mt-2 max-w-full rounded-lg" />}
                       </span>
                     </span>
                   </button>
@@ -662,8 +664,8 @@ export default function Simulados({ onOpenChat }) {
               <h2>Questões e respostas</h2>
               {result.responses.map((item, index) => <div key={item.id} className="print-question">
                 <strong>{index + 1}. {item.area} · ENEM {item.year}: {item.q}</strong>
-                {item.files?.map((file) => <img key={file} src={file} alt="Imagem da questão" className="max-w-full" />)}
-                {item.opts.map((option, i) => <p key={i}>{String.fromCharCode(65 + i)}) {option} {item.altFiles?.[i] && <img src={item.altFiles[i]} alt="Alternativa ilustrada" className="max-w-full" />}</p>)}
+                {item.files?.map((file) => { const src = safeImageUrl(file); return src ? <img key={file} src={src} alt="Imagem da questão" className="max-w-full" /> : null })}
+                {item.opts.map((option, i) => <p key={i}>{String.fromCharCode(65 + i)}) {option} {safeImageUrl(item.altFiles?.[i]) && <img src={safeImageUrl(item.altFiles[i])} alt="Alternativa ilustrada" className="max-w-full" />}</p>)}
                 <p>Sua resposta: {answers[item.id] === undefined ? 'Em branco' : String.fromCharCode(65 + answers[item.id])} · Gabarito: {String.fromCharCode(65 + item.correctIndex)}</p>
               </div>)}
             </div>

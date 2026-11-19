@@ -35,15 +35,12 @@ export default function ChatAI({ open, onClose, context }) {
       const systemContent = context
         ? `${SYSTEM_PROMPT}\n\nContexto atual (questão/assunto que o aluno está estudando):\n${context}`
         : SYSTEM_PROMPT
-      const apiMessages = [
-        { role: 'system', content: systemContent },
-        ...nextMessages.map((m) => ({ role: m.role, content: m.text }))
-      ]
+      const apiMessages = nextMessages.map((m) => ({ role: m.role, content: m.text }))
 
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: apiMessages, temperature: 0.7, max_tokens: 1024 })
+        body: JSON.stringify({ messages: apiMessages, system: systemContent, temperature: 0.7, max_tokens: 1024 })
       })
 
       if (!res.ok) {

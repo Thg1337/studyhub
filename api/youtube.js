@@ -1,14 +1,15 @@
 const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGIN || '').split(',').map((s) => s.trim()).filter(Boolean)
+const IS_PROD = process.env.NODE_ENV === 'production'
 
 function isAllowedOrigin(origin) {
-  if (ALLOWED_ORIGINS.length === 0) return true
-  if (!origin) return true
+  if (ALLOWED_ORIGINS.length === 0) return !IS_PROD
+  if (!origin) return !IS_PROD
   return ALLOWED_ORIGINS.includes(origin)
 }
 
 export default async function handler(req, res) {
   const origin = req.headers.origin
-  if (origin && !isAllowedOrigin(origin)) {
+  if (!isAllowedOrigin(origin)) {
     res.status(403).json({ error: 'Origem não permitida' })
     return
   }
@@ -34,13 +35,14 @@ export default async function handler(req, res) {
   try {
     const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(q)}&type=video&maxResults=${maxResults}&key=${apiKey}`
     const r = await fetch(url)
-    const data = await r.json()
+    const data = await r.json().catch(() => ({}))
     if (!r.ok) {
-      res.status(r.status).json({ error: data?.error?.message || r.statusText })
+      const upstream = r.status < 500 ? (data?.error?.message || r.statusText) : 'Falha no provedor de vídeo'
+      res.status(r.status).json({ error: upstream })
       return
     }
     res.status(200).json(data)
   } catch (e) {
-    res.status(500).json({ error: e.message })
+    res.status(500).json({ error: 'Erro interno do servidor' })
   }
 }

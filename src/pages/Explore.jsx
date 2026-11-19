@@ -5,6 +5,7 @@ import { Search, Sparkles, Play, Loader2, BookOpen, Youtube, BrainCircuit, Calcu
 import Skeleton from '../components/Skeleton.jsx'
 import { useToast } from '../components/Toast.jsx'
 import { askAI } from '../lib/ai.js'
+import { safeImageUrl } from '../lib/safeUrl.js'
 
 export default function Explore() {
   const [searchParams] = useSearchParams()
@@ -234,7 +235,7 @@ export default function Explore() {
                 <div className="space-y-4">
                   {/* Player */}
                   <div className="relative w-full aspect-video rounded-2xl overflow-hidden bg-black/60 border border-gray-200 dark:border-white/10">
-                    {playingId ? (
+                    {playingId && /^[a-zA-Z0-9_-]{11}$/.test(playingId) ? (
                       <iframe
                         src={`https://www.youtube.com/embed/${playingId}?autoplay=1&rel=0`}
                         title="YouTube player"
@@ -261,7 +262,7 @@ export default function Explore() {
                         }`}
                       >
                         <div className="relative shrink-0">
-                          <img src={v.thumb} alt={v.title} className="w-28 h-16 object-cover rounded-lg" />
+                          {safeImageUrl(v.thumb) ? <img src={safeImageUrl(v.thumb)} alt={v.title} className="w-28 h-16 object-cover rounded-lg" /> : null}
                           <div className="absolute inset-0 flex items-center justify-center">
                             <Play className="w-6 h-6 text-gray-900 dark:text-white drop-shadow opacity-80 group-hover:opacity-100" />
                           </div>

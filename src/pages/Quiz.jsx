@@ -6,6 +6,7 @@ import { toggleFavorite, isFavorite, updateFavoriteAnswer } from '../lib/favorit
 import { recordResult, getDue } from '../lib/spaced.js'
 import { recordStudy, recordAnswer, getProgress, getStreak, setDailyGoal, todayCount } from '../lib/progress.js'
 import { askAI } from '../lib/ai.js'
+import { safeImageUrl } from '../lib/safeUrl.js'
 import { useToast } from '../components/Toast.jsx'
 
 const DRAFT_KEY = 'studyhub_quiz_draft'
@@ -349,7 +350,7 @@ export default function Quiz({ onOpenChat }) {
             </div>
 
             <h3 className="font-display text-xl md:text-2xl font-bold mb-6 leading-snug">{q.q}</h3>
-            {q.files?.map((file, i) => <img key={i} src={file} alt="Imagem da questão" className="max-w-full mb-4 rounded-xl" />)}
+            {q.files?.map((file, i) => { const src = safeImageUrl(file); return src ? <img key={i} src={src} alt="Imagem da questão" className="max-w-full mb-4 rounded-xl" /> : null })}
 
             <div className="space-y-3 mb-6">
               {q.opts.map((opt, i) => {
@@ -376,7 +377,7 @@ export default function Quiz({ onOpenChat }) {
                         {String.fromCharCode(65 + i)}
                       </span>
                         <span className="text-sm">{opt}</span>
-                        {q.altFiles?.[i] && <img src={q.altFiles[i]} alt="Imagem da alternativa" className="max-w-full" />}
+                        {safeImageUrl(q.altFiles?.[i]) && <img src={safeImageUrl(q.altFiles[i])} alt="Imagem da alternativa" className="max-w-full" />}
                     </span>
                   </button>
                 )
