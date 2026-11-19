@@ -132,14 +132,14 @@ export default function Explore() {
           <Search className="w-3 h-3 text-neon-cyan" /> Explorar assunto
         </div>
         <h1 className="font-display text-4xl md:text-5xl font-bold tracking-tight">
-          Digite um <span className="text-gradient">assunto</span>
+          Explore um <span className="text-gradient">assunto</span>
         </h1>
         <p className="text-gray-600 dark:text-white/60 mt-3 max-w-2xl">
           A IA explica o tema e busca vídeo-aulas no YouTube automaticamente.
         </p>
       </motion.div>
 
-      <form onSubmit={handleSearch} className="glass rounded-3xl p-4 flex items-center gap-3 mb-10">
+      <form onSubmit={handleSearch} className="glass rounded-3xl p-4 flex flex-col gap-3 mb-10 sm:flex-row sm:items-center">
         <input
           aria-label="Assunto para explorar"
           value={topic}
@@ -150,7 +150,7 @@ export default function Explore() {
         <button
           type="submit"
           disabled={loadingAI || loadingVideos}
-          className="inline-flex items-center gap-2 px-5 py-3 rounded-2xl font-semibold bg-gradient-to-r from-neon-cyan to-neon-violet text-ink-950 disabled:opacity-50"
+          className="btn btn-primary justify-center disabled:opacity-50"
         >
           {loadingAI || loadingVideos ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
           Buscar
@@ -159,7 +159,7 @@ export default function Explore() {
           type="button"
           onClick={fetchSummary}
           disabled={loadingSummary}
-          className="inline-flex items-center gap-2 px-5 py-3 rounded-2xl font-semibold glass hover:bg-white/10 dark:hover:bg-white/10 disabled:opacity-50"
+          className="btn btn-ghost justify-center disabled:opacity-50"
         >
           {loadingSummary ? <Loader2 className="w-4 h-4 animate-spin" /> : <BookOpen className="w-4 h-4" />}
           Gerar material
@@ -175,6 +175,26 @@ export default function Explore() {
           className={`inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm ${summaryKind === key ? 'bg-neon-cyan/20 border border-neon-cyan/60' : 'glass hover:bg-white/10'}`}><Icon className="h-4 w-4" />{label}</button>)}
         <Link to={`/quiz/Matemática?topic=${encodeURIComponent(topic || activeTopic)}`} className="inline-flex items-center gap-2 rounded-xl glass px-3 py-2 text-sm hover:bg-white/10"><Sparkles className="h-4 w-4" />Praticar assunto</Link>
       </div>
+
+      {!activeTopic && !error && (
+        <div className="rounded-3xl border border-dashed border-line p-6 sm:p-8">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-faint">Sugestões para começar</p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            {['Função quadrática', 'Fotossíntese', 'Revolução Francesa', 'Lei de Hess', 'Interpretação de texto'].map((suggestion) => (
+              <button
+                key={suggestion}
+                onClick={() => setTopic(suggestion)}
+                className="rounded-full border border-line px-4 py-2 text-sm text-muted transition-colors duration-150 hover:border-line-strong hover:text-fg"
+              >
+                {suggestion}
+              </button>
+            ))}
+          </div>
+          <p className="mt-6 max-w-lg text-sm leading-relaxed text-muted">
+            Escolha uma sugestão ou digite seu próprio tema para ver explicação, resumo, mapa mental e vídeo-aulas.
+          </p>
+        </div>
+      )}
 
       {error && (
         <div className="glass rounded-2xl p-4 mb-8 border border-rose-400/40 text-rose-300 text-sm whitespace-pre-line">

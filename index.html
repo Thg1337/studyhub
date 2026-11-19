@@ -1,18 +1,12 @@
 <!DOCTYPE html>
 <html lang="pt-BR" class="dark">
   <head>
-    <script>
-      (function () {
-        try {
-          var t = localStorage.getItem('theme');
-          if (t === 'light') document.documentElement.classList.remove('dark');
-          else document.documentElement.classList.add('dark');
-        } catch (e) {}
-      })();
-    </script>
+    <script src="/theme-init.js"></script>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>StudyHub — Plataforma de Estudos Premium</title>
+    <title>StudyHub — Estude com método para o ENEM</title>
+    <meta name="description" content="Questões do ENEM, simulado completo, revisão espaçada e um tutor de IA que explica cada erro. Sem cadastro." />
+    <meta name="theme-color" content="#08090a" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -20,7 +14,7 @@
       rel="stylesheet"
     />
   </head>
-  <body class="bg-ink-950 text-white antialiased">
+  <body class="antialiased">
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>

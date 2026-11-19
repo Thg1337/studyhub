@@ -126,10 +126,10 @@ export default function Favoritas({ onOpenChat }) {
     return () => window.removeEventListener('keydown', closeOnEscape)
   }, [zoom])
 
-  return <main className="mx-auto max-w-5xl px-6 pb-24 pt-28">
+  return <main className="mx-auto max-w-6xl px-6 pb-24 pt-28">
     <div className="mb-9">
       <div className="mb-4 inline-flex items-center gap-2 rounded-full glass px-3 py-1 text-xs text-gray-600 dark:text-white/70">
-        <Star className="h-3 w-3 text-yellow-400" /> Sua coleção
+        <Star className="h-3 w-3 text-neon-cyan" /> Sua coleção
       </div>
       <h1 className="font-display text-4xl font-bold tracking-tight md:text-5xl">Questões <span className="text-gradient">favoritas</span></h1>
       <p className="mt-3 text-gray-600 dark:text-white/60">{favorites.length} questão(ões) salvas neste navegador. Abra as imagens para vê-las em tamanho maior.</p>
@@ -207,12 +207,12 @@ export default function Favoritas({ onOpenChat }) {
         </section>
       ) : <p className="glass rounded-2xl p-8 text-center text-gray-600 dark:text-white/60">Nenhuma questão corresponde à busca.</p>}
     </> : <div className="glass rounded-3xl p-10 text-center">
-      <Star className="mx-auto mb-4 h-9 w-9 text-yellow-400" />
+      <Star className="mx-auto mb-4 h-9 w-9 text-neon-cyan" />
       <h2 className="font-display text-xl font-bold">Sua coleção ainda está vazia</h2>
       <p className="mt-2 text-gray-600 dark:text-white/60">Toque na estrela de uma questão para guardá-la aqui.</p>
       <div className="mt-6 flex flex-wrap justify-center gap-3">
-        <Link to="/quiz/Matemática" className="rounded-xl bg-neon-cyan px-4 py-2 font-semibold text-ink-950">Ir para Prática</Link>
-        <Link to="/simulados" className="glass rounded-xl px-4 py-2 font-semibold">Ver Simulados</Link>
+        <Link to="/quiz/Matemática" className="btn btn-primary">Ir para Prática</Link>
+        <Link to="/simulados" className="btn btn-ghost">Ver Simulados</Link>
       </div>
     </div>}
 

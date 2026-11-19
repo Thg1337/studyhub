@@ -10,21 +10,21 @@ export default {
       },
       colors: {
         ink: {
-          950: '#06070d',
-          900: '#0a0c16',
-          800: '#101220',
-          700: '#171a2e'
+          950: '#08090a',
+          900: '#0c0e0f',
+          800: '#121415',
+          700: '#1a1d1e'
         },
         neon: {
-          cyan: '#6fffe9',
-          violet: '#a78bfa',
-          pink: '#ff7ad9',
-          lime: '#b6ff3c'
+          cyan: '#d4f558',
+          violet: '#f2f0e9',
+          pink: '#ff9e64',
+          lime: '#b6f36a'
         }
       },
       boxShadow: {
-        glow: '0 0 60px -10px rgba(111,255,233,0.45)',
-        glowv: '0 0 60px -10px rgba(167,139,250,0.45)'
+        glow: '0 10px 40px -18px rgba(212,245,88,0.55)',
+        glowv: '0 18px 50px -30px rgba(0,0,0,0.9)'
       },
       animation: {
         'float': 'float 6s ease-in-out infinite',

@@ -1,6 +1,6 @@
 import React from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { AlertTriangle, Trash2, X } from 'lucide-react'
+import { AlertTriangle, Trash2, X, Flame, Layers } from 'lucide-react'
 import { askAI } from '../lib/ai.js'
 import { getAll, getDue, recordResult } from '../lib/spaced.js'
 import { getProgress, getStreak, todayCount, recordStudy } from '../lib/progress.js'
@@ -96,28 +96,38 @@ export default function Flashcards() {
     setDeleteId(null)
   }
 
-  return <main className="pt-28 pb-24 max-w-3xl mx-auto px-6 space-y-6">
-    <h1 className="font-display text-4xl font-bold">Flashcards com IA</h1>
-    <p className="text-gray-600 dark:text-white/70">Gere cartões por assunto e revise no ritmo de repetição espaçada. Salvos neste navegador.</p>
-    <form onSubmit={generate} className="glass rounded-2xl p-5 flex flex-wrap gap-3">
-      <input aria-label="Assunto dos flashcards" value={topic} onChange={(e) => setTopic(e.target.value)} placeholder="Ex.: Fotossíntese" className="flex-1 min-w-48 glass rounded-xl px-4 py-2 bg-transparent" />
-      <button disabled={loading} className="px-5 py-2 rounded-xl bg-neon-cyan text-ink-950 font-semibold disabled:opacity-50">{loading ? 'Gerando…' : 'Gerar 5 cartões'}</button>
+  return <main className="pt-28 pb-24 max-w-6xl mx-auto px-6 space-y-6">
+    <div>
+      <div className="mb-4 inline-flex items-center gap-2 rounded-full glass px-3 py-1 text-xs text-gray-600 dark:text-white/70"><Layers className="h-3 w-3 text-neon-cyan" /> Repetição espaçada</div>
+      <h1 className="font-display text-4xl font-bold tracking-tight md:text-5xl">Flashcards <span className="text-gradient">com IA</span></h1>
+      <p className="mt-3 max-w-2xl text-gray-600 dark:text-white/60">Gere cartões por assunto e revise no ritmo de repetição espaçada. Tudo salvo neste navegador.</p>
+    </div>
+    <form onSubmit={generate} className="glass rounded-2xl p-4 flex flex-col gap-3 sm:flex-row">
+      <input aria-label="Assunto dos flashcards" value={topic} onChange={(e) => setTopic(e.target.value)} placeholder="Ex.: Fotossíntese" className="flex-1 rounded-xl border border-line bg-transparent px-4 py-3 text-sm outline-none placeholder:text-gray-400 dark:placeholder:text-white/40" />
+      <button disabled={loading} className="btn btn-primary disabled:opacity-50">{loading ? 'Gerando…' : 'Gerar 5 cartões'}</button>
     </form>
     {error && <p role="alert" className="text-rose-400">{error}</p>}
     <div className="glass rounded-2xl p-5 flex flex-wrap gap-4 items-center justify-between">
-      <span>🔥 {getStreak(progress)} dia(s) · Meta: {todayCount(progress)}/{progress.goal} · {cards.filter((c) => dueIds.has(c.id)).length} cartão(ões) para revisar</span>
-      <button onClick={() => { setOnlyDue(!onlyDue); setCurrent(0); setFlipped(false) }} className="text-neon-cyan">{onlyDue ? 'Ver todos' : 'Revisar pendentes'}</button>
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-gray-600 dark:text-white/70">
+        <span className="inline-flex items-center gap-1.5"><Flame className="h-4 w-4 text-neon-cyan" /> {getStreak(progress)} dia(s)</span>
+        <span>Meta {todayCount(progress)}/{progress.goal}</span>
+        <span>{cards.filter((c) => dueIds.has(c.id)).length} para revisar</span>
+      </div>
+      <button onClick={() => { setOnlyDue(!onlyDue); setCurrent(0); setFlipped(false) }} className="btn btn-ghost !px-4 !py-2 text-sm">{onlyDue ? 'Ver todos' : 'Revisar pendentes'}</button>
     </div>
     {card ? <section className="glass rounded-3xl p-8 space-y-5">
-      <p className="text-sm text-gray-500 dark:text-white/60">{card.topic} · {current + 1}/{visible.length}</p>
-      <h2 className="text-2xl font-bold whitespace-pre-line">{card.front}</h2>
-      {flipped ? <p className="border-t border-white/20 pt-5 whitespace-pre-line">{card.back}</p> : <button onClick={() => setFlipped(true)} className="text-neon-cyan">Mostrar resposta</button>}
+      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-gray-500 dark:text-white/50">{card.topic} · {current + 1}/{visible.length}</p>
+      <h2 className="font-display text-2xl font-semibold leading-snug whitespace-pre-line">{card.front}</h2>
+      {flipped ? <p className="border-t border-line pt-5 text-gray-700 dark:text-white/80 whitespace-pre-line">{card.back}</p> : <button onClick={() => setFlipped(true)} className="btn btn-ghost">Mostrar resposta</button>}
       <div className="flex gap-3 flex-wrap">
-        {flipped && <><button onClick={() => rate('again')} className="px-4 py-2 rounded-xl glass">Não lembrei · 1 dia</button><button onClick={() => rate('hard')} className="px-4 py-2 rounded-xl glass">Difícil</button><button onClick={() => rate('good')} className="px-4 py-2 rounded-xl bg-neon-cyan text-ink-950">Bom</button><button onClick={() => rate('easy')} className="px-4 py-2 rounded-xl bg-emerald-500 text-white">Fácil</button></>}
-        <button onClick={() => { setCurrent((n) => (n + 1) % visible.length); setFlipped(false) }} className="px-4 py-2 rounded-xl glass">Próximo</button>
-        <button onClick={() => setDeleteId(card.id)} className="inline-flex items-center gap-2 px-4 py-2 rounded-xl glass hover:border-rose-400/50 hover:text-rose-400 transition-colors"><Trash2 className="w-4 h-4" /> Excluir</button>
+        {flipped && <><button onClick={() => rate('again')} className="btn btn-ghost text-rose-300 hover:border-rose-400/50 hover:text-rose-300">Não lembrei · 1 dia</button><button onClick={() => rate('hard')} className="btn btn-ghost">Difícil</button><button onClick={() => rate('good')} className="btn btn-primary">Bom</button><button onClick={() => rate('easy')} className="btn bg-emerald-500 text-white hover:bg-emerald-400">Fácil</button></>}
+        <button onClick={() => { setCurrent((n) => (n + 1) % visible.length); setFlipped(false) }} className="btn btn-ghost">Próximo</button>
+        <button onClick={() => setDeleteId(card.id)} className="btn btn-ghost hover:border-rose-400/50 hover:text-rose-400"><Trash2 className="w-4 h-4" /> Excluir</button>
       </div>
-    </section> : <p>{onlyDue ? 'Nenhum cartão pendente por enquanto.' : 'Gere cartões para começar.'}</p>}
+    </section> : <div className="rounded-3xl border border-dashed border-line p-10 text-center">
+      <p className="font-display text-lg font-semibold">{onlyDue ? 'Nenhum cartão pendente' : 'Nenhum cartão ainda'}</p>
+      <p className="mt-2 text-sm text-gray-600 dark:text-white/60">{onlyDue ? 'Todos os cartões já foram revisados por hoje.' : 'Digite um assunto acima para gerar os cinco primeiros cartões.'}</p>
+    </div>}
     <AnimatePresence>
       {cardToDelete && <motion.div
         initial={false} animate={{ opacity: 1 }} exit={{ opacity: 0 }}

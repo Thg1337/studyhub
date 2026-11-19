@@ -1,67 +1,53 @@
 import React from 'react'
-import { motion, useInView } from 'framer-motion'
 import { Link } from 'react-router-dom'
-import TiltCard from './TiltCard.jsx'
-import { BookOpen, Calculator, Globe, FlaskConical, Zap, Leaf } from 'lucide-react'
+import { BookOpen, Calculator, Globe, FlaskConical, Zap, Leaf, ArrowUpRight } from 'lucide-react'
 
 const subjects = [
-  { name: 'Matemática', icon: Calculator, color: 'from-neon-cyan to-neon-violet', desc: 'Álgebra, funções e geometria (ENEM)' },
-  { name: 'Física', icon: Zap, color: 'from-neon-violet to-neon-pink', desc: 'Mecânica, termologia e óptica (ENEM)' },
-  { name: 'Química', icon: FlaskConical, color: 'from-neon-lime to-neon-cyan', desc: 'Atomística, físico-química e orgânica (ENEM)' },
-  { name: 'Biologia', icon: Leaf, color: 'from-neon-pink to-neon-violet', desc: 'Ecologia, genética e fisiologia (ENEM)' },
-  { name: 'História', icon: Globe, color: 'from-neon-cyan to-neon-lime', desc: 'Brasil, mundo e atualidades (ENEM)' },
-  { name: 'Português', icon: BookOpen, color: 'from-neon-violet to-neon-cyan', desc: 'Interpretação, gramática e redação (ENEM)' }
+  { name: 'Matemática', icon: Calculator, desc: 'Álgebra, funções, geometria e estatística.' },
+  { name: 'Física', icon: Zap, desc: 'Mecânica, termologia, óptica e eletricidade.' },
+  { name: 'Química', icon: FlaskConical, desc: 'Atomística, físico-química e orgânica.' },
+  { name: 'Biologia', icon: Leaf, desc: 'Ecologia, genética e fisiologia humana.' },
+  { name: 'História', icon: Globe, desc: 'Brasil, mundo contemporâneo e atualidades.' },
+  { name: 'Português', icon: BookOpen, desc: 'Interpretação de texto, gramática e redação.' }
 ]
 
 export default function SubjectCards() {
-  const ref = React.useRef(null)
-  const inView = useInView(ref, { once: true, margin: '-100px' })
-
   return (
-    <section ref={ref} className="max-w-7xl mx-auto px-6 py-24">
-      <motion.div
-        initial={false}
-        animate={inView ? { opacity: 1, y: 0 } : {}}
-        transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-        className="flex items-end justify-between mb-12 flex-wrap gap-4"
-      >
+    <section id="materias" className="mx-auto max-w-7xl scroll-mt-24 px-6 py-20 sm:py-24">
+      <div className="flex flex-wrap items-end justify-between gap-6 border-b border-line pb-8">
         <div>
-          <h2 className="font-display text-4xl md:text-6xl font-bold tracking-tight">
-            Escolha sua <span className="text-gradient">matéria</span>
-          </h2>
-          <p className="text-gray-600 dark:text-white/60 mt-3 max-w-xl">
-            Mergulhe em conteúdos organizados, com aulas e prática guiadas por IA.
+          <p className="eyebrow">
+            <span className="eyebrow-dot" aria-hidden="true" />
+            Matérias
           </p>
+          <h2 className="display-title mt-4 max-w-xl font-display text-3xl font-bold sm:text-4xl md:text-5xl">
+            Escolha por onde começar.
+          </h2>
         </div>
-      </motion.div>
+        <p className="body-copy max-w-xs text-sm leading-relaxed text-muted">
+          Seis frentes do ENEM com aulas, questões e revisão espaçada no mesmo lugar.
+        </p>
+      </div>
 
-      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        {subjects.map((s, i) => (
-          <motion.div
-            key={s.name}
-            initial={false}
-            animate={inView ? { opacity: 1, y: 0 } : {}}
-            transition={{ duration: 0.6, delay: i * 0.08, ease: [0.22, 1, 0.36, 1] }}
+      <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {subjects.map((subject, index) => (
+          <Link
+            key={subject.name}
+            to={`/explore?topic=${encodeURIComponent(subject.name)}`}
+            className="subject-card lift group"
           >
-            <TiltCard className="group cursor-pointer" intensity={10}>
-              <Link to={`/explore?topic=${encodeURIComponent(s.name)}`} className="block">
-                <div className="glass rounded-3xl p-7 h-full relative overflow-hidden transition-all duration-300 group-hover:scale-[1.02] group-hover:border-gray-300 dark:border-white/20">
-                  <div className={`absolute -top-16 -right-16 w-40 h-40 rounded-full bg-gradient-to-br ${s.color} blur-3xl opacity-0 group-hover:opacity-60 transition-opacity duration-500`} />
-                  <div className="relative" style={{ transform: 'translateZ(20px)' }}>
-                    <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${s.color} flex items-center justify-center mb-5 shadow-glow`}>
-                      <s.icon className="w-6 h-6 text-ink-950" />
-                    </div>
-                    <h3 className="font-display text-2xl font-bold mb-2">{s.name}</h3>
-                    <p className="text-gray-600 dark:text-white/60 text-sm mb-6">{s.desc}</p>
-                    <div className="flex items-center gap-2 text-sm font-medium text-gray-600 dark:text-white/70 group-hover:text-neon-cyan transition-colors">
-                      Explorar
-                      <span className="group-hover:translate-x-1 transition-transform">→</span>
-                    </div>
-                  </div>
-                </div>
-              </Link>
-            </TiltCard>
-          </motion.div>
+            <div className="flex items-start justify-between">
+              <span className="subject-index">0{index + 1}</span>
+              <subject.icon className="h-5 w-5 text-faint transition-colors duration-200 group-hover:text-accent" aria-hidden="true" />
+            </div>
+
+            <h3 className="mt-8 font-display text-2xl font-bold tracking-tight">{subject.name}</h3>
+            <p className="mt-2 flex-1 text-sm leading-relaxed text-muted">{subject.desc}</p>
+
+            <span className="subject-cta mt-6">
+              Explorar matéria <ArrowUpRight className="h-3.5 w-3.5" aria-hidden="true" />
+            </span>
+          </Link>
         ))}
       </div>
     </section>

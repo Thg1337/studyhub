@@ -120,7 +120,7 @@ export default function ChatAI({ open, onClose, context }) {
                     <div
                       className={`max-w-[75%] px-4 py-3 rounded-2xl text-sm leading-relaxed ${
                         m.role === 'user'
-                          ? 'bg-gradient-to-br from-neon-violet to-neon-pink text-gray-900 dark:text-white rounded-br-sm'
+                          ? 'bg-neon-cyan text-ink-950 rounded-br-sm'
                           : 'glass rounded-bl-sm'
                       }`}
                     >

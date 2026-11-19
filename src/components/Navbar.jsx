@@ -1,7 +1,17 @@
 import React from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { Sparkles, Menu, X, Sun, Moon } from 'lucide-react'
+import { Sparkles, Menu, X, Sun, Moon, ArrowUpRight } from 'lucide-react'
 import { useTheme } from './ThemeToggle.jsx'
+
+const links = [
+  { to: '/', label: 'Início' },
+  { to: '/explore', label: 'Explorar' },
+  { to: '/simulados', label: 'Simulados' },
+  { to: '/flashcards', label: 'Flashcards' },
+  { to: '/favoritas', label: 'Favoritas' },
+  { to: '/progresso', label: 'Progresso' },
+  { to: '/quiz/Matemática', label: 'Prática' }
+]
 
 export default function Navbar({ onOpenChat }) {
   const [open, setOpen] = React.useState(false)
@@ -9,34 +19,26 @@ export default function Navbar({ onOpenChat }) {
   const { theme, toggle } = useTheme()
 
   return (
-    <header className="fixed top-0 inset-x-0 z-50">
-      <div className="max-w-7xl mx-auto px-6 py-4">
-        <div className="glass-strong rounded-2xl px-5 py-3 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2 group">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-neon-cyan to-neon-violet flex items-center justify-center shadow-glow">
-              <Sparkles className="w-5 h-5 text-ink-950" />
-            </div>
-            <span className="font-display font-bold text-lg tracking-tight">StudyHub</span>
+    <header className="fixed inset-x-0 top-0 z-50">
+      <div className="mx-auto max-w-7xl px-4 py-3 sm:px-6 sm:py-4">
+        <div className="glass-strong flex items-center justify-between gap-3 rounded-2xl px-3 py-2.5 sm:px-5 sm:py-3">
+          <Link to="/" className="group flex items-center gap-2.5" aria-label="StudyHub — início">
+            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-neon-cyan text-ink-950 transition-transform duration-200 group-hover:-rotate-6">
+              <Sparkles className="h-4 w-4" />
+            </span>
+            <span className="font-display text-[1.05rem] font-bold tracking-tight text-fg">StudyHub</span>
           </Link>
 
-          <nav className="hidden lg:flex items-center gap-1">
-            {[
-              { to: '/', label: 'Início' },
-              { to: '/explore', label: 'Explorar' },
-              { to: '/simulados', label: 'Simulados' },
-              { to: '/flashcards', label: 'Flashcards' },
-              { to: '/favoritas', label: 'Favoritas' },
-              { to: '/progresso', label: 'Progresso' },
-              { to: '/quiz/Matemática', label: 'Prática' }
-            ].map((l) => (
+          <nav className="hidden lg:flex lg:items-center lg:gap-0.5" aria-label="Navegação principal">
+            {links.map((link) => (
               <Link
-                key={l.to}
-                to={l.to}
-                className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
-                  loc.pathname === l.to ? 'text-neon-cyan' : 'text-gray-600 dark:text-white/70 hover:text-gray-900 dark:text-white'
-                }`}
+                key={link.to}
+                to={link.to}
+                data-active={loc.pathname === link.to}
+                className="nav-link"
+                aria-current={loc.pathname === link.to ? 'page' : undefined}
               >
-                {l.label}
+                {link.label}
               </Link>
             ))}
           </nav>
@@ -44,33 +46,52 @@ export default function Navbar({ onOpenChat }) {
           <div className="flex items-center gap-2">
             <button
               onClick={toggle}
-              className="p-2 rounded-xl glass hover:bg-white/10 dark:hover:bg-white/10 transition-colors"
-              aria-label="Alternar tema"
+              className="flex h-9 w-9 items-center justify-center rounded-full border border-line text-muted transition-colors duration-150 hover:border-line-strong hover:text-fg"
+              aria-label={theme === 'dark' ? 'Mudar para tema claro' : 'Mudar para tema escuro'}
             >
-              {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+              <span className="icon-swap" data-state={theme}>
+                <Sun className="icon-sun" />
+                <Moon className="icon-moon" />
+              </span>
             </button>
+
+            <button onClick={onOpenChat} className="btn btn-primary !hidden !px-4 !py-2.5 lg:!inline-flex">
+              <Sparkles className="h-4 w-4" /> Tutor IA
+            </button>
+
             <button
-              onClick={onOpenChat}
-              className="hidden lg:inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold bg-gradient-to-r from-neon-cyan to-neon-violet text-ink-950 hover:opacity-90 transition-opacity"
+              className="flex h-9 w-9 items-center justify-center rounded-full border border-line text-fg lg:hidden"
+              onClick={() => setOpen(!open)}
+              aria-expanded={open}
+              aria-controls="menu-mobile"
+              aria-label={open ? 'Fechar menu' : 'Abrir menu'}
             >
-              <Sparkles className="w-4 h-4" /> Tutor IA
-            </button>
-            <button className="lg:hidden p-2 rounded-xl glass" onClick={() => setOpen(!open)}>
-              {open ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              {open ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
             </button>
           </div>
         </div>
 
         {open && (
-          <div className="lg:hidden mt-2 glass-strong rounded-2xl p-3 flex flex-col gap-1">
-            <Link to="/" onClick={() => setOpen(false)} className="px-4 py-2 rounded-xl text-sm hover:bg-white/5">Início</Link>
-            <Link to="/explore" onClick={() => setOpen(false)} className="px-4 py-2 rounded-xl text-sm hover:bg-white/5">Explorar</Link>
-            <Link to="/simulados" onClick={() => setOpen(false)} className="px-4 py-2 rounded-xl text-sm hover:bg-white/5 dark:hover:bg-white/5">Simulados</Link>
-            <Link to="/flashcards" onClick={() => setOpen(false)} className="px-4 py-2 rounded-xl text-sm hover:bg-white/5">Flashcards</Link>
-            <Link to="/favoritas" onClick={() => setOpen(false)} className="px-4 py-2 rounded-xl text-sm hover:bg-white/5">Favoritas</Link>
-            <Link to="/progresso" onClick={() => setOpen(false)} className="px-4 py-2 rounded-xl text-sm hover:bg-white/5">Progresso</Link>
-            <Link to="/quiz/Matemática" onClick={() => setOpen(false)} className="px-4 py-2 rounded-xl text-sm hover:bg-white/5">Prática</Link>
-            <button onClick={() => { setOpen(false); onOpenChat() }} className="px-4 py-2 rounded-xl text-sm text-left bg-gradient-to-r from-neon-cyan to-neon-violet text-ink-950 font-semibold">Tutor IA</button>
+          <div id="menu-mobile" className="nav-sheet glass-strong mt-2 rounded-2xl p-3 lg:hidden">
+            <nav className="flex flex-col" aria-label="Navegação móvel">
+              {links.map((link) => (
+                <Link
+                  key={link.to}
+                  to={link.to}
+                  onClick={() => setOpen(false)}
+                  className="flex items-center justify-between rounded-xl px-4 py-3 text-sm text-muted transition-colors duration-150 hover:bg-surface hover:text-fg"
+                >
+                  {link.label}
+                  <ArrowUpRight className="h-3.5 w-3.5 text-faint" />
+                </Link>
+              ))}
+            </nav>
+            <button
+              onClick={() => { setOpen(false); onOpenChat() }}
+              className="btn btn-primary mt-2 w-full"
+            >
+              <Sparkles className="h-4 w-4" /> Abrir tutor IA
+            </button>
           </div>
         )}
       </div>

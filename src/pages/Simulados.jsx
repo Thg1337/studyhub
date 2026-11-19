@@ -1,6 +1,6 @@
 import React from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ClipboardList, BookOpen, Target, Brain, CheckCircle2, XCircle, RotateCcw, Play, Loader2, Globe, Image as ImageIcon, Timer, History, Shuffle, Star } from 'lucide-react'
+import { ClipboardList, BookOpen, Target, Brain, CheckCircle2, XCircle, RotateCcw, Play, Loader2, Globe, Image as ImageIcon, Timer, History, Shuffle, Star, ChevronDown } from 'lucide-react'
 import { toggleFavorite, isFavorite, updateFavoriteAnswer } from '../lib/favorites.js'
 import { recordResult } from '../lib/spaced.js'
 import { recordStudy, recordAnswer } from '../lib/progress.js'
@@ -59,6 +59,7 @@ function writeHistory(entry) {
 
 export default function Simulados({ onOpenChat }) {
   const [mode, setMode] = React.useState('intro')
+  const [guideOpen, setGuideOpen] = React.useState(false)
   const [language, setLanguage] = React.useState('ingles')
   const [mixYears, setMixYears] = React.useState(true)
   const [selectedYear, setSelectedYear] = React.useState('2023')
@@ -327,44 +328,58 @@ export default function Simulados({ onOpenChat }) {
       <AnimatePresence mode="wait">
         {mode === 'intro' && (
           <motion.div key="intro" initial={false} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-8">
-            <div className="glass rounded-3xl p-8">
-              <div className="flex items-center gap-3 mb-6">
-                <Brain className="w-6 h-6 text-neon-cyan" />
-                <h2 className="font-display text-2xl font-bold">Como ler seu resultado</h2>
-              </div>
-              <div className="space-y-6 text-gray-700 dark:text-white/80 leading-relaxed">
-                <div>
-                  <h3 className="font-display font-semibold text-lg mb-2 text-neon-cyan">Índice diagnóstico, não nota oficial</h3>
-                  <p>O resultado do StudyHub usa a proporção de acertos para criar um <strong>índice de 0 a 1000</strong> e uma faixa de incerteza. Ele serve para acompanhar sua evolução e comparar tentativas com quantidade parecida de questões.</p>
-                </div>
-                <div>
-                  <h3 className="font-display font-semibold text-lg mb-2 text-neon-violet">Por que não é a TRI do INEP?</h3>
-                  <ul className="space-y-2 list-disc list-inside text-gray-600 dark:text-white/70">
-                    <li>A TRI oficial exige parâmetros calibrados de cada item (discriminação, dificuldade e acerto ao acaso).</li>
-                    <li>Esses parâmetros e a conversão oficial para a escala de notas não são fornecidos pela API de questões.</li>
-                    <li>Por isso, o site não chama este resultado de “nota ENEM” e não tenta prever uma nota oficial.</li>
-                  </ul>
-                </div>
-                <div>
-                  <h3 className="font-display font-semibold text-lg mb-2 text-neon-pink">Use o resultado para estudar melhor</h3>
-                  <ul className="space-y-2 list-disc list-inside text-gray-600 dark:text-white/70">
-                    <li>Observe os acertos por área e revise os erros com a IA.</li>
-                    <li>Compare seu índice apenas entre simulados de configuração semelhante.</li>
-                  </ul>
-                  <p className="mt-3 text-gray-800 dark:text-white/90 font-medium">Quanto mais questões você responder, mais estreita tende a ser a faixa de incerteza do índice.</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="glass rounded-3xl p-8">
-              <h2 className="font-display text-2xl font-bold mb-4">Iniciar simulado</h2>
+            <div className="glass rounded-3xl p-6 sm:p-8">
+              <h2 className="font-display text-2xl font-bold mb-2">Iniciar simulado</h2>
               <p className="text-gray-600 dark:text-white/60 text-sm mb-6">As questões são sorteadas de vários anos (2009–2023) e misturadas, com filtros por disciplina, idioma e quantidade.</p>
               <button
                 onClick={() => setMode('config')}
-                className="inline-flex items-center gap-2 px-5 py-3 rounded-2xl font-semibold bg-gradient-to-r from-neon-cyan to-neon-violet text-ink-950"
+                className="btn btn-primary"
               >
                 <Play className="w-4 h-4" /> Escolher prova
               </button>
+            </div>
+
+            <div className="glass rounded-3xl p-6 sm:p-8">
+              <button
+                type="button"
+                onClick={() => setGuideOpen((open) => !open)}
+                aria-expanded={guideOpen}
+                aria-controls="guia-resultado"
+                className="flex w-full items-center justify-between gap-4 text-left"
+              >
+                <span className="flex items-center gap-3">
+                  <Brain className="h-5 w-5 text-neon-cyan" />
+                  <span className="font-display text-xl font-bold">Como ler seu resultado</span>
+                </span>
+                <ChevronDown className={`h-5 w-5 shrink-0 text-gray-500 transition-transform duration-200 dark:text-white/50 ${guideOpen ? 'rotate-180' : ''}`} />
+              </button>
+
+              <div id="guia-resultado" className="acc-panel" data-open={guideOpen}>
+                <div>
+                  <div className="space-y-6 pt-6 text-gray-700 dark:text-white/80 leading-relaxed">
+                    <div>
+                      <h3 className="font-display font-semibold text-lg mb-2 text-accent">Índice diagnóstico, não nota oficial</h3>
+                      <p>O resultado do StudyHub usa a proporção de acertos para criar um <strong>índice de 0 a 1000</strong> e uma faixa de incerteza. Ele serve para acompanhar sua evolução e comparar tentativas com quantidade parecida de questões.</p>
+                    </div>
+                    <div>
+                      <h3 className="font-display font-semibold text-lg mb-2">Por que não é a TRI do INEP?</h3>
+                      <ul className="space-y-2 list-disc list-inside text-gray-600 dark:text-white/70">
+                        <li>A TRI oficial exige parâmetros calibrados de cada item (discriminação, dificuldade e acerto ao acaso).</li>
+                        <li>Esses parâmetros e a conversão oficial para a escala de notas não são fornecidos pela API de questões.</li>
+                        <li>Por isso, o site não chama este resultado de “nota ENEM” e não tenta prever uma nota oficial.</li>
+                      </ul>
+                    </div>
+                    <div>
+                      <h3 className="font-display font-semibold text-lg mb-2">Use o resultado para estudar melhor</h3>
+                      <ul className="space-y-2 list-disc list-inside text-gray-600 dark:text-white/70">
+                        <li>Observe os acertos por área e revise os erros com a IA.</li>
+                        <li>Compare seu índice apenas entre simulados de configuração semelhante.</li>
+                      </ul>
+                      <p className="mt-3 text-gray-800 dark:text-white/90 font-medium">Quanto mais questões você responder, mais estreita tende a ser a faixa de incerteza do índice.</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
 
             {history.some((entry) => entry.method === 'performance-v2') && (

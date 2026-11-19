@@ -40,9 +40,9 @@ export default function Progresso() {
       </article>
       <article className="glass rounded-3xl p-6">
         <h2 className="font-display text-xl font-bold">Atividade da semana</h2>
-        <div className="mt-6 flex h-36 items-end gap-3" aria-label="Questões respondidas nos últimos sete dias">
+        {dashboard.total === 0 ? <p className="mt-6 text-sm text-gray-600 dark:text-white/60">Responda a primeira questão para desenhar o gráfico da semana.</p> : <div className="mt-6 flex h-36 items-end gap-3" aria-label="Questões respondidas nos últimos sete dias">
           {dashboard.week.map((day) => <div key={day.key} className="flex flex-1 flex-col items-center gap-2"><span className="text-xs">{day.count || ''}</span><div className="w-full rounded-t-lg bg-gradient-to-t from-neon-cyan to-neon-violet" style={{ height: `${Math.max(day.count ? 12 : 3, day.count / max * 100)}%` }} title={`${day.count} questões`} /><span className="text-xs text-gray-500 dark:text-white/50">{day.label}</span></div>)}
-        </div>
+        </div>}
       </article>
     </section>
     <section className="mt-6 glass rounded-3xl p-6">
