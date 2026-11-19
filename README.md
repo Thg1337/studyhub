@@ -4,12 +4,9 @@ Projeto React + Vite + Tailwind CSS + Framer Motion, design premium estilo "Kimi
 
 ## Rodar localmente
 
-```bash
-npm install
-npm run dev
+
 ```
 
-Abra http://localhost:5173.
 
 ## Estrutura
 
