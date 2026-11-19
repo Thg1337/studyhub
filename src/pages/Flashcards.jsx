@@ -120,12 +120,12 @@ export default function Flashcards() {
     </section> : <p>{onlyDue ? 'Nenhum cartão pendente por enquanto.' : 'Gere cartões para começar.'}</p>}
     <AnimatePresence>
       {cardToDelete && <motion.div
-        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+        initial={false} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
         className="fixed inset-0 z-[100] flex items-center justify-center p-4"
       >
-        <div className="absolute inset-0 bg-ink-950/75 backdrop-blur-sm" onClick={() => setDeleteId(null)} aria-hidden="true" />
+        <div className="absolute inset-0 bg-ink-950/85" onClick={() => setDeleteId(null)} aria-hidden="true" />
         <motion.div
-          initial={{ opacity: 0, scale: 0.94, y: 16 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.96, y: 10 }}
+          initial={false} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.96, y: 10 }}
           transition={{ duration: 0.2 }}
           role="alertdialog" aria-modal="true" aria-labelledby="delete-title" aria-describedby="delete-description"
           className="relative w-full max-w-md rounded-3xl border border-gray-200 dark:border-white/10 bg-white dark:bg-ink-900 p-7 shadow-2xl"

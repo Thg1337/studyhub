@@ -11,11 +11,7 @@ const formatTime = (milliseconds) => {
 export default function Progresso() {
   const [progress, setProgress] = React.useState(getProgress)
   const [dashboard, setDashboard] = React.useState(getDashboard)
-  const reload = () => { setProgress(getProgress()); setDashboard(getDashboard()) }
-  React.useEffect(() => {
-    window.addEventListener('focus', reload)
-    return () => window.removeEventListener('focus', reload)
-  }, [])
+  // Recarrega apenas quando a página é montada; evitar piscar ao trocar de aba.
   const max = Math.max(...dashboard.week.map((day) => day.count), 1)
 
   return <main className="mx-auto max-w-6xl px-6 pb-24 pt-28">

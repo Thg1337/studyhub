@@ -61,22 +61,22 @@ export default function ChatAI({ open, onClose, context }) {
     <AnimatePresence>
       {open && (
         <motion.div
-          initial={{ opacity: 0 }}
+          initial={false}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.3 }}
           className="fixed inset-0 z-[60] flex items-center justify-center p-4 md:p-8"
         >
           <motion.div
-            initial={{ opacity: 0 }}
+            initial={false}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="absolute inset-0 bg-white dark:bg-ink-950/70 backdrop-blur-xl"
+            className="absolute inset-0 bg-white dark:bg-ink-950/80"
           />
 
           <motion.div
-            initial={{ y: 40, scale: 0.96, opacity: 0 }}
+            initial={false}
             animate={{ y: 0, scale: 1, opacity: 1 }}
             exit={{ y: 40, scale: 0.96, opacity: 0 }}
             transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
@@ -107,7 +107,7 @@ export default function ChatAI({ open, onClose, context }) {
                 {messages.map((m, i) => (
                   <motion.div
                     key={i}
-                    initial={{ opacity: 0, y: 12, scale: 0.98 }}
+                    initial={false}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
                     className={`flex gap-3 ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}
@@ -137,7 +137,7 @@ export default function ChatAI({ open, onClose, context }) {
 
               {typing && (
                 <motion.div
-                  initial={{ opacity: 0, y: 8 }}
+                  initial={false}
                   animate={{ opacity: 1, y: 0 }}
                   className="flex gap-3"
                 >

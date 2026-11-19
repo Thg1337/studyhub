@@ -312,7 +312,7 @@ export default function Simulados({ onOpenChat }) {
 
   return (
     <div className="pt-28 pb-24 max-w-6xl mx-auto px-6">
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="mb-10">
+      <motion.div initial={false} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="mb-10">
         <div className="inline-flex items-center gap-2 glass rounded-full px-3 py-1 text-xs text-gray-600 dark:text-white/70 mb-4">
           <ClipboardList className="w-3 h-3 text-neon-cyan" /> Simulados ENEM
         </div>
@@ -326,7 +326,7 @@ export default function Simulados({ onOpenChat }) {
 
       <AnimatePresence mode="wait">
         {mode === 'intro' && (
-          <motion.div key="intro" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-8">
+          <motion.div key="intro" initial={false} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-8">
             <div className="glass rounded-3xl p-8">
               <div className="flex items-center gap-3 mb-6">
                 <Brain className="w-6 h-6 text-neon-cyan" />
@@ -409,7 +409,7 @@ export default function Simulados({ onOpenChat }) {
         )}
 
         {mode === 'config' && (
-          <motion.div key="config" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="glass rounded-3xl p-8 space-y-6">
+          <motion.div key="config" initial={false} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="glass rounded-3xl p-8 space-y-6">
             <h2 className="font-display text-2xl font-bold">Configurar simulado</h2>
 
             <div>
@@ -545,14 +545,14 @@ export default function Simulados({ onOpenChat }) {
         )}
 
         {mode === 'loading' && (
-          <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="glass rounded-3xl p-12 text-center">
+          <motion.div key="loading" initial={false} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="glass rounded-3xl p-12 text-center">
             <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-neon-cyan" />
             <p className="text-gray-600 dark:text-white/70">{loadingMsg}</p>
           </motion.div>
         )}
 
         {mode === 'exam' && q && (
-          <motion.div key="exam" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="glass rounded-3xl p-8">
+          <motion.div key="exam" initial={false} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="glass rounded-3xl p-8">
             <div className="flex items-center justify-between mb-6 flex-wrap gap-2">
               <div className="text-xs text-gray-500 dark:text-white/50">Questão {current + 1} de {questions.length} · {q.area} · ENEM {q.year}</div>
               <div className="flex items-center gap-3">
@@ -652,7 +652,7 @@ export default function Simulados({ onOpenChat }) {
         )}
 
         {mode === 'result' && result && (
-          <motion.div key="result" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-6">
+          <motion.div key="result" initial={false} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-6">
             <div className="glass rounded-3xl p-8 text-center">
               <div className="font-display text-6xl font-bold text-gradient mb-2">{result.overall.score}</div>
               <p className="text-gray-600 dark:text-white/60 mb-2">Índice de desempenho estimado (0–1000): {result.overall.low}–{result.overall.high}</p>

@@ -217,7 +217,7 @@ export default function Favoritas({ onOpenChat }) {
     </div>}
 
     {zoom && <div role="dialog" aria-modal="true" aria-label={zoom.alt} onClick={() => setZoom(null)}
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-ink-950/90 p-4 backdrop-blur-sm">
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-ink-950/95 p-4">
       <button autoFocus onClick={() => setZoom(null)} aria-label="Fechar imagem" className="absolute right-5 top-5 rounded-xl bg-white/10 p-2 text-white"><X className="h-6 w-6" /></button>
       <img src={zoom.src} alt={zoom.alt} onClick={(event) => event.stopPropagation()} className="max-h-[85vh] max-w-full rounded-xl bg-white object-contain" />
     </div>}

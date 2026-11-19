@@ -20,7 +20,7 @@ export default function SubjectCards() {
   return (
     <section ref={ref} className="max-w-7xl mx-auto px-6 py-24">
       <motion.div
-        initial={{ opacity: 0, y: 30 }}
+        initial={false}
         animate={inView ? { opacity: 1, y: 0 } : {}}
         transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
         className="flex items-end justify-between mb-12 flex-wrap gap-4"
@@ -39,7 +39,7 @@ export default function SubjectCards() {
         {subjects.map((s, i) => (
           <motion.div
             key={s.name}
-            initial={{ opacity: 0, y: 40 }}
+            initial={false}
             animate={inView ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 0.6, delay: i * 0.08, ease: [0.22, 1, 0.36, 1] }}
           >

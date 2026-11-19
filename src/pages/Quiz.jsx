@@ -194,7 +194,7 @@ export default function Quiz({ onOpenChat }) {
 
   return (
     <div className="pt-28 pb-24 max-w-3xl mx-auto px-6">
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="mb-8">
+      <motion.div initial={false} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="mb-8">
         <div className="inline-flex items-center gap-2 glass rounded-full px-3 py-1 text-xs text-gray-600 dark:text-white/70 mb-4">
           <Target className="w-3 h-3 text-neon-cyan" /> Prática com IA
         </div>
@@ -208,7 +208,7 @@ export default function Quiz({ onOpenChat }) {
 
       <AnimatePresence mode="wait">
         {mode === 'config' && (
-          <motion.div key="config" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="glass rounded-3xl p-8 space-y-6">
+          <motion.div key="config" initial={false} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="glass rounded-3xl p-8 space-y-6">
             <div>
               <label htmlFor="quiz-topic" className="block text-sm text-gray-600 dark:text-white/60 mb-2">Assunto</label>
               <input
@@ -316,14 +316,14 @@ export default function Quiz({ onOpenChat }) {
         )}
 
         {mode === 'loading' && (
-          <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="glass rounded-3xl p-12 text-center">
+          <motion.div key="loading" initial={false} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="glass rounded-3xl p-12 text-center">
             <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-neon-cyan" />
             <p className="text-gray-600 dark:text-white/70">{loadingMsg}</p>
           </motion.div>
         )}
 
         {mode === 'quiz' && q && (
-          <motion.div key={current} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.4 }} className="glass rounded-3xl p-8">
+          <motion.div key={current} initial={false} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.4 }} className="glass rounded-3xl p-8">
             <div className="flex items-center justify-between mb-6">
               <div className="text-xs text-gray-500 dark:text-white/50">Questão {current + 1} de {questions.length}</div>
               <div className="flex items-center gap-3">
@@ -387,7 +387,7 @@ export default function Quiz({ onOpenChat }) {
             <AnimatePresence>
               {revealed[q.id] && (
                 <motion.div
-                  initial={{ opacity: 0, y: 10 }}
+                  initial={false}
                   animate={{ opacity: 1, y: 0 }}
                   className={`rounded-2xl p-5 border mb-6 ${
                     answers[q.id] === q.correct
@@ -452,7 +452,7 @@ export default function Quiz({ onOpenChat }) {
         )}
 
         {mode === 'result' && result && (
-          <motion.div key="result" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-6">
+          <motion.div key="result" initial={false} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-6">
             <div className="glass rounded-3xl p-8 text-center">
               <div className="font-display text-6xl font-bold text-gradient mb-2">
                 {result.correctCount}/{result.total}

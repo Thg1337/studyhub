@@ -23,7 +23,7 @@ export function ToastProvider({ children }) {
           {toasts.map((t) => (
             <motion.div
               key={t.id}
-              initial={{ opacity: 0, y: 20, scale: 0.95 }}
+              initial={false}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 10, scale: 0.95 }}
               className="pointer-events-auto glass-strong rounded-2xl px-4 py-3 flex items-center gap-3 shadow-glowv min-w-[220px]"

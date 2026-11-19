@@ -127,7 +127,7 @@ export default function Explore() {
 
   return (
     <div className="pt-28 pb-24 max-w-6xl mx-auto px-6">
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="mb-10">
+      <motion.div initial={false} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="mb-10">
         <div className="inline-flex items-center gap-2 glass rounded-full px-3 py-1 text-xs text-gray-600 dark:text-white/70 mb-4">
           <Search className="w-3 h-3 text-neon-cyan" /> Explorar assunto
         </div>
@@ -185,7 +185,7 @@ export default function Explore() {
       <AnimatePresence>
         {activeTopic && (
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={false}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
             className="grid lg:grid-cols-2 gap-6 items-stretch"
@@ -283,7 +283,7 @@ export default function Explore() {
 
       {summary && (
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={false}
           animate={{ opacity: 1, y: 0 }}
           className="glass rounded-3xl p-7 mt-6"
         >
