@@ -231,34 +231,29 @@ html:not(.dark) .glass-strong {
 }
 .reveal {
   opacity: 0;
-  animation: reveal-up var(--duration-very-slow) var(--ease-smooth-out) forwards;
+  animation: reveal-up var(--duration-slow) var(--ease-smooth-out) forwards;
   animation-delay: var(--reveal-delay, 0ms);
 }
 
 /* ---------- entrada de página ---------- */
 .page-enter {
-  animation: page-in var(--duration-medium) var(--ease-smooth-out) both;
+  animation: page-in var(--duration-quick) var(--ease-smooth-out) both;
 }
 @keyframes page-in {
-  from { opacity: 0; transform: translateY(var(--distance-base, 8px)); }
+  from { opacity: 0.6; transform: translateY(var(--distance-micro, 4px)); }
   to { opacity: 1; transform: translateY(0); }
 }
 
 /* ---------- revelação no scroll ---------- */
 html.reveal-enabled [data-reveal] {
-  opacity: 0;
-  transform: translateY(14px);
+  transform: translateY(8px);
 }
 html.reveal-enabled [data-reveal].is-revealed {
-  opacity: 1;
   transform: translateY(0);
-  transition:
-    opacity var(--duration-slow) var(--ease-smooth-out) var(--reveal-delay, 0ms),
-    transform var(--duration-slow) var(--ease-smooth-out) var(--reveal-delay, 0ms);
+  transition: transform var(--duration-fast) var(--ease-smooth-out) var(--reveal-delay, 0ms);
 }
 /* Se algo dentro do bloco receber foco (teclado), mostra imediatamente. */
 html.reveal-enabled [data-reveal]:focus-within {
-  opacity: 1;
   transform: none;
   transition: none;
 }
@@ -516,7 +511,7 @@ html:not(.dark) .text-neon-pink { color: #b4551f; }
     transition-duration: .01ms !important;
   }
   .reveal { opacity: 1; }
-  html.reveal-enabled [data-reveal] { opacity: 1; transform: none; transition: none; }
+  html.reveal-enabled [data-reveal] { transform: none; transition: none; }
 }
 
 @media print {
