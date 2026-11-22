@@ -80,10 +80,10 @@ export default function ChatAI({ open, onClose, context }) {
           />
 
           <motion.div
-            initial={false}
+            initial={{ y: 24, scale: 0.97, opacity: 0 }}
             animate={{ y: 0, scale: 1, opacity: 1 }}
-            exit={{ y: 40, scale: 0.96, opacity: 0 }}
-            transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+            exit={{ y: 24, scale: 0.97, opacity: 0 }}
+            transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
             className="relative w-full max-w-3xl h-[85vh] glass-strong rounded-3xl flex flex-col overflow-hidden shadow-glowv"
           >
             {/* header */}

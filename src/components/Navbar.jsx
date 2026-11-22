@@ -1,5 +1,6 @@
 import React from 'react'
 import { Link, useLocation } from 'react-router-dom'
+import { motion, AnimatePresence } from 'framer-motion'
 import { Sparkles, Menu, X, Sun, Moon, ArrowUpRight } from 'lucide-react'
 import { useTheme } from './ThemeToggle.jsx'
 
@@ -71,29 +72,38 @@ export default function Navbar({ onOpenChat }) {
           </div>
         </div>
 
-        {open && (
-          <div id="menu-mobile" className="nav-sheet glass-strong mt-2 rounded-2xl p-3 lg:hidden">
-            <nav className="flex flex-col" aria-label="Navegação móvel">
-              {links.map((link) => (
-                <Link
-                  key={link.to}
-                  to={link.to}
-                  onClick={() => setOpen(false)}
-                  className="flex items-center justify-between rounded-xl px-4 py-3 text-sm text-muted transition-colors duration-150 hover:bg-surface hover:text-fg"
-                >
-                  {link.label}
-                  <ArrowUpRight className="h-3.5 w-3.5 text-faint" />
-                </Link>
-              ))}
-            </nav>
-            <button
-              onClick={() => { setOpen(false); onOpenChat() }}
-              className="btn btn-primary mt-2 w-full"
+        <AnimatePresence>
+          {open && (
+            <motion.div
+              id="menu-mobile"
+              initial={{ opacity: 0, y: -8, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -8, scale: 0.98 }}
+              transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+              className="nav-sheet glass-strong mt-2 rounded-2xl p-3 lg:hidden"
             >
-              <Sparkles className="h-4 w-4" /> Abrir tutor IA
-            </button>
-          </div>
-        )}
+              <nav className="flex flex-col" aria-label="Navegação móvel">
+                {links.map((link) => (
+                  <Link
+                    key={link.to}
+                    to={link.to}
+                    onClick={() => setOpen(false)}
+                    className="flex items-center justify-between rounded-xl px-4 py-3 text-sm text-muted transition-colors duration-150 hover:bg-surface hover:text-fg"
+                  >
+                    {link.label}
+                    <ArrowUpRight className="h-3.5 w-3.5 text-faint" />
+                  </Link>
+                ))}
+              </nav>
+              <button
+                onClick={() => { setOpen(false); onOpenChat() }}
+                className="btn btn-primary mt-2 w-full"
+              >
+                <Sparkles className="h-4 w-4" /> Abrir tutor IA
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </header>
   )

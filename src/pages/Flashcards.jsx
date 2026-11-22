@@ -106,7 +106,7 @@ export default function Flashcards() {
       <input aria-label="Assunto dos flashcards" value={topic} onChange={(e) => setTopic(e.target.value)} placeholder="Ex.: Fotossíntese" className="flex-1 rounded-xl border border-line bg-transparent px-4 py-3 text-sm outline-none placeholder:text-gray-400 dark:placeholder:text-white/40" />
       <button disabled={loading} className="btn btn-primary disabled:opacity-50">{loading ? 'Gerando…' : 'Gerar 5 cartões'}</button>
     </form>
-    {error && <p role="alert" className="text-rose-400">{error}</p>}
+    {error && <p key={error} role="alert" className="shake text-rose-400">{error}</p>}
     <div className="glass rounded-2xl p-5 flex flex-wrap gap-4 items-center justify-between">
       <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-gray-600 dark:text-white/70">
         <span className="inline-flex items-center gap-1.5"><Flame className="h-4 w-4 text-neon-cyan" /> {getStreak(progress)} dia(s)</span>

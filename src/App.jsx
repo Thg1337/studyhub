@@ -1,5 +1,6 @@
 import React, { useState, lazy, Suspense } from 'react'
 import { Routes, Route, Link, useLocation } from 'react-router-dom'
+import { motion, AnimatePresence } from 'framer-motion'
 import { ArrowRight } from 'lucide-react'
 import Navbar from './components/Navbar.jsx'
 import Hero from './components/Hero.jsx'
@@ -122,14 +123,19 @@ export default function App() {
         <div className="relative min-h-screen">
           <a href="#conteudo-principal" className="skip-link">Pular para o conteúdo principal</a>
           <Navbar onOpenChat={() => { setChatContext(''); setChatOpen(true) }} />
-          <Suspense fallback={<PageFallback />}>
-            <div
+          <AnimatePresence mode="popLayout" initial={false}>
+            <motion.div
               key={location.pathname}
               id="conteudo-principal"
               tabIndex="-1"
-              className={location.pathname === '/' ? undefined : 'page-enter'}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+              style={{ width: '100%' }}
             >
-              <Routes location={location}>
+              <Suspense fallback={<PageFallback />}>
+                <Routes location={location}>
                 <Route
                   path="/"
                   element={
@@ -148,8 +154,9 @@ export default function App() {
                 <Route path="/favoritas" element={<Favoritas onOpenChat={(ctx) => { setChatContext(ctx); setChatOpen(true) }} />} />
                 <Route path="/progresso" element={<Progresso />} />
               </Routes>
-            </div>
-          </Suspense>
+              </Suspense>
+            </motion.div>
+          </AnimatePresence>
           <Footer />
           <ChatAI open={chatOpen} onClose={() => setChatOpen(false)} context={chatContext} />
         </div>

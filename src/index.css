@@ -237,7 +237,7 @@ html:not(.dark) .glass-strong {
 
 /* ---------- entrada de página ---------- */
 .page-enter {
-  animation: page-in var(--duration-fast) var(--ease-smooth-out) both;
+  animation: page-in var(--duration-medium) var(--ease-smooth-out) both;
 }
 @keyframes page-in {
   from { opacity: 0; transform: translateY(var(--distance-base, 8px)); }
@@ -284,10 +284,52 @@ html.reveal-enabled [data-reveal]:focus-within {
   to { transform: scaleY(1); }
 }
 
-/* ---------- cartões e respostas ---------- */
-.card-in {
-  animation: card-in var(--duration-fast) var(--ease-smooth-out) both;
+/* ---------- erro: shake ---------- */
+.shake {
+  animation: shake var(--duration-fast) var(--ease-smooth-out);
 }
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-6px); }
+  40% { transform: translateX(6px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(4px); }
+}
+
+/* ---------- skeleton ---------- */
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: var(--surface);
+}
+.skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent);
+  animation: shimmer var(--duration-very-slow) var(--ease-linear) infinite;
+}
+@keyframes shimmer {
+  to { transform: translateX(100%); }
+}
+html:not(.dark) .skeleton::after {
+  background: linear-gradient(90deg, transparent, rgba(0,0,0,0.06), transparent);
+}
+
+/* ---------- stagger de listas ---------- */
+.stagger > * {
+  opacity: 0;
+  animation: card-in var(--duration-fast) var(--ease-smooth-out) forwards;
+}
+.stagger > *:nth-child(1) { animation-delay: 0ms; }
+.stagger > *:nth-child(2) { animation-delay: var(--duration-stagger); }
+.stagger > *:nth-child(3) { animation-delay: calc(var(--duration-stagger) * 2); }
+.stagger > *:nth-child(4) { animation-delay: calc(var(--duration-stagger) * 3); }
+.stagger > *:nth-child(5) { animation-delay: calc(var(--duration-stagger) * 4); }
+.stagger > *:nth-child(6) { animation-delay: calc(var(--duration-stagger) * 5); }
+.stagger > *:nth-child(7) { animation-delay: calc(var(--duration-stagger) * 6); }
+.stagger > *:nth-child(8) { animation-delay: calc(var(--duration-stagger) * 7); }
 @keyframes card-in {
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }

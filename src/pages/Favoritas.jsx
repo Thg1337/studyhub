@@ -154,7 +154,7 @@ export default function Favoritas({ onOpenChat }) {
             <span className="h-2 w-2 rounded-full bg-neon-cyan" /> {name} <span className="text-sm font-normal text-gray-500 dark:text-white/50">({items.length})</span>
           </h2>
           <div className="space-y-4">
-            {items.map((item) => <article key={item.id} className="glass rounded-2xl p-5 sm:p-7">
+            {items.map((item) => <article key={item.id} data-reveal className="glass rounded-2xl p-5 sm:p-7">
               <div className="mb-5 flex items-center justify-between gap-3">
                 <span className="text-xs font-medium text-neon-cyan">{item.source === 'simulado' ? `ENEM ${item.year || ''}` : `Prática${item.topic ? ` · ${item.topic}` : ''}`}</span>
                 <button onClick={() => remove(item.id)} aria-label="Remover questão das favoritas"

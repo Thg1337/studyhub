@@ -2,18 +2,26 @@ import React from 'react'
 
 /**
  * Revela elementos marcados com `data-reveal` quando entram na viewport.
- * Usa apenas opacity + translateY (sem blur), então não reintroduz flicker.
- * Se o navegador não tiver IntersectionObserver ou o usuário preferir menos
- * movimento, tudo fica visível imediatamente.
+ * Observa também o DOM (MutationObserver) para revelar conteúdo renderizado
+ * depois (listas, chat, resultados de busca).
  */
 export function useScrollReveal(key) {
   React.useLayoutEffect(() => {
-    const nodes = Array.from(document.querySelectorAll('[data-reveal]:not(.is-revealed)'))
-    if (nodes.length === 0) return undefined
-
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    if (reduced || typeof IntersectionObserver === 'undefined') {
-      nodes.forEach((node) => node.classList.add('is-revealed'))
+
+    const reveal = (node) => {
+      if (!node || node.classList.contains('is-revealed')) return
+      if (reduced) {
+        node.classList.add('is-revealed')
+        return
+      }
+      node.classList.add('is-revealed')
+    }
+
+    const collect = () => Array.from(document.querySelectorAll('[data-reveal]:not(.is-revealed)'))
+
+    if (reduced) {
+      collect().forEach(reveal)
       return undefined
     }
 
@@ -30,7 +38,26 @@ export function useScrollReveal(key) {
       { threshold: 0.12, rootMargin: '0px 0px -8% 0px' }
     )
 
-    nodes.forEach((node) => observer.observe(node))
-    return () => observer.disconnect()
+    const observeAll = () => {
+      collect().forEach((node) => observer.observe(node))
+    }
+    observeAll()
+
+    // Revela conteúdo que aparece depois (fetch, chat, listas dinâmicas).
+    const mutation = new MutationObserver(() => {
+      observeAll()
+    })
+    mutation.observe(document.body, { childList: true, subtree: true })
+
+    // Segurança: se o observer não disparar, revela tudo após 6s.
+    const fallback = window.setTimeout(() => {
+      collect().forEach((node) => node.classList.add('is-revealed'))
+    }, 6000)
+
+    return () => {
+      window.clearTimeout(fallback)
+      mutation.disconnect()
+      observer.disconnect()
+    }
   }, [key])
 }
