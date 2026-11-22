@@ -1,5 +1,6 @@
 import React from 'react'
 import { BarChart3, Clock3, Flame, Target, TrendingUp } from 'lucide-react'
+import { getDashboard, getProgress, getStreak, setDailyGoal, todayCount } from '../lib/progress.js'
 import { exportStudyData, importStudyData } from '../lib/dataTransfer.js'
 
 const formatTime = (milliseconds) => {
