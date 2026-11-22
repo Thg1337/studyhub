@@ -291,7 +291,7 @@ export default function Explore() {
                   <div className="relative w-full aspect-video rounded-2xl overflow-hidden bg-black/60 border border-gray-200 dark:border-white/10">
                     {playingId && /^[a-zA-Z0-9_-]{11}$/.test(playingId) ? (
                       <iframe
-                        src={`https://www.youtube.com/embed/${playingId}?autoplay=1&rel=0`}
+                        src={`https://www.youtube.com/embed/${playingId}?autoplay=0&rel=0`}
                         title="YouTube player"
                         className="absolute inset-0 w-full h-full"
                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
