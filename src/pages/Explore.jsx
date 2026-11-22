@@ -45,9 +45,13 @@ export default function Explore() {
     }))
   }
 
+  const summaryKindRef = React.useRef(summaryKind)
+  React.useEffect(() => { summaryKindRef.current = summaryKind }, [summaryKind])
+
   const fetchSummary = async () => {
     const t = (topic || activeTopic).trim()
     if (!t) { toast('Informe um assunto.', 'error'); return }
+    const kind = summaryKindRef.current
     setLoadingSummary(true)
     setSummary('')
     try {
@@ -57,8 +61,9 @@ export default function Explore() {
         formulas: 'Gere uma folha de fórmulas e relações essenciais. Explique o significado de cada variável e quando usar cada fórmula. Se não houver fórmulas, apresente regras-chave.',
         revisao: 'Gere uma revisão ativa de 5 minutos: 5 perguntas curtas, pausa para o aluno pensar e a resposta logo abaixo de cada pergunta.'
       }
+      const instruction = instructions[kind] || instructions.resumo
       const messages = [
-        { role: 'system', content: `Você é um tutor em português do Brasil. ${instructions[summaryKind]}` },
+        { role: 'system', content: `Você é um tutor em português do Brasil. ${instruction}` },
         { role: 'user', content: `Assunto: ${t}` }
       ]
       setSummary(await askAI(messages, { temperature: 0.5, max_tokens: 1200 }))
