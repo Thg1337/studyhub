@@ -7,6 +7,32 @@ import { useToast } from '../components/Toast.jsx'
 import { askAI } from '../lib/ai.js'
 import { safeImageUrl } from '../lib/safeUrl.js'
 
+const ENTITY_MAP = {
+  nbsp: '\u00A0',
+  amp: '&',
+  lt: '<',
+  gt: '>',
+  quot: '"',
+  apos: "'",
+  mdash: '—',
+  ndash: '–',
+  hellip: '…',
+  rsquo: '’',
+  lsquo: '‘',
+  rdquo: '”',
+  ldquo: '“'
+}
+function decodeEntities(text) {
+  if (!text) return text
+  return String(text).replace(/&([a-zA-Z]+|#(\d+)|#x([0-9a-fA-F]+));/g, (match, name, dec, hex) => {
+    if (name.startsWith('#')) {
+      const code = dec ? parseInt(dec, 10) : parseInt(hex, 16)
+      if (Number.isFinite(code)) return String.fromCharCode(code)
+      return match
+    }
+    return Object.prototype.hasOwnProperty.call(ENTITY_MAP, name) ? ENTITY_MAP[name] : match
+  })
+}
 export default function Explore() {
   const [searchParams] = useSearchParams()
   const toast = useToast()
@@ -57,13 +83,13 @@ export default function Explore() {
     try {
       const instructions = {
         resumo: 'Gere um resumo de revisão de 1 página, em tópicos curtos, com conceitos, fórmulas e pontos-chave. Use markdown simples.',
-        mapa: 'Gere um mapa mental em texto: assunto central, ramos principais e conexões, usando indentação clara. Inclua apenas conteúdos importantes para o ENEM.',
+        mapa: 'Gere um mapa mental em texto: assunto central, ramos principais e conexões, usando indentação clara. Use apenas espaços normais (nunca &nbsp; ou outras entidades HTML). Inclua apenas conteúdos importantes para o ENEM.',
         formulas: 'Gere uma folha de fórmulas e relações essenciais. Explique o significado de cada variável e quando usar cada fórmula. Se não houver fórmulas, apresente regras-chave.',
         revisao: 'Gere uma revisão ativa de 5 minutos: 5 perguntas curtas, pausa para o aluno pensar e a resposta logo abaixo de cada pergunta.'
       }
       const instruction = instructions[kind] || instructions.resumo
       const messages = [
-        { role: 'system', content: `Você é um tutor em português do Brasil. ${instruction}` },
+        { role: 'system', content: `Você é um tutor em português do Brasil. ${instruction} Responda em texto puro, sem entidades HTML (como &nbsp;).` },
         { role: 'user', content: `Assunto: ${t}` }
       ]
       setSummary(await askAI(messages, { temperature: 0.5, max_tokens: 1200 }))
@@ -234,7 +260,7 @@ export default function Explore() {
                 </div>
               ) : (
                 <div className="flex-1 overflow-y-auto scrollbar-thin pr-1">
-                  <p key={activeTopic} className="answer-in text-gray-700 dark:text-white/80 leading-relaxed whitespace-pre-line">{aiText}</p>
+                  <p key={activeTopic} className="answer-in text-gray-700 dark:text-white/80 leading-relaxed whitespace-pre-line">{decodeEntities(aiText)}</p>
                 </div>
               )}
             </div>
@@ -320,7 +346,7 @@ export default function Explore() {
             <h2 className="font-display text-xl font-bold">{({ resumo: 'Resumo de revisão', mapa: 'Mapa mental em texto', formulas: 'Fórmulas e regras', revisao: 'Revisão ativa de 5 minutos' })[summaryKind]}</h2>
           </div>
           <div className="text-gray-700 dark:text-white/80 leading-relaxed whitespace-pre-line text-sm">
-            {summary}
+            {decodeEntities(summary)}
           </div>
         </motion.div>
       )}
