@@ -1,6 +1,6 @@
 import React from 'react'
 import { BarChart3, Clock3, Flame, Target, TrendingUp } from 'lucide-react'
-import { getDashboard, getProgress, getStreak, setDailyGoal, todayCount } from '../lib/progress.js'
+import { exportStudyData, importStudyData } from '../lib/dataTransfer.js'
 
 const formatTime = (milliseconds) => {
   const minutes = Math.round(milliseconds / 60000)
@@ -48,6 +48,29 @@ export default function Progresso() {
     <section data-reveal className="mt-6 glass rounded-3xl p-6">
       <h2 className="font-display text-xl font-bold">Desempenho por matéria</h2>
       {dashboard.bySubject.length ? <div className="mt-5 space-y-4">{dashboard.bySubject.sort((a, b) => b.total - a.total).map((item, index) => <div key={item.subject} className="grid gap-2 sm:grid-cols-[180px_1fr_100px] sm:items-center"><strong className="text-sm">{item.subject}</strong><div className="h-2 overflow-hidden rounded-full bg-gray-200 dark:bg-white/10"><div className="bar-grow-x h-full rounded-full bg-neon-cyan" style={{ width: `${item.rate}%`, '--bar-delay': `${index * 50}ms` }} /></div><span className="text-sm text-gray-600 dark:text-white/70">{item.rate}% · {item.correct}/{item.total}</span></div>)}</div> : <p className="mt-4 text-sm text-gray-600 dark:text-white/60">Responda questões na Prática ou nos Simulados para ver sua evolução aqui.</p>}
+    </section>
+    <section data-reveal className="mt-6 glass rounded-3xl p-6">
+      <h2 className="font-display text-xl font-bold">Seus dados</h2>
+      <p className="mt-2 text-sm text-gray-600 dark:text-white/60">Exporte ou importe progresso, favoritas e flashcards. Tudo fica neste navegador.</p>
+      <div className="mt-4 flex flex-wrap gap-3">
+        <button onClick={exportStudyData} className="btn btn-ghost">Exportar dados</button>
+        <label className="btn btn-ghost cursor-pointer">
+          Importar dados
+          <input type="file" accept="application/json" className="hidden" onChange={async (e) => {
+            const file = e.target.files?.[0]
+            if (!file) return
+            try {
+              await importStudyData(file)
+              setProgress(getProgress())
+              alert('Dados importados. Recarregue a página para atualizar tudo.')
+            } catch (err) {
+              alert(err.message || 'Erro ao importar.')
+            } finally {
+              e.target.value = ''
+            }
+          }} />
+        </label>
+      </div>
     </section>
   </main>
 }

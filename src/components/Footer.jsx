@@ -62,7 +62,7 @@ export default function Footer() {
 
       <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 border-t border-line px-6 py-6 text-xs text-faint">
         <p>© 2026 StudyHub. Seus dados ficam salvos neste navegador.</p>
-        <p>Feito para quem estuda de verdade.</p>
+        <p>Quando você usa o tutor IA ou busca vídeos, o assunto digitado é enviado ao serviço correspondente. Exporte seus dados para não perder nada.</p>
       </div>
     </footer>
   )

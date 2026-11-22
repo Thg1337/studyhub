@@ -196,7 +196,7 @@ export default function Explore() {
           className="btn btn-ghost justify-center disabled:opacity-50"
         >
           {loadingSummary ? <Loader2 className="w-4 h-4 animate-spin" /> : <BookOpen className="w-4 h-4" />}
-          Gerar material
+          Gerar {summaryKind === 'resumo' ? 'resumo' : summaryKind === 'mapa' ? 'mapa mental' : summaryKind === 'formulas' ? 'fórmulas' : 'revisão'}
         </button>
       </form>
       <div className="mb-8 flex flex-wrap gap-2" aria-label="Tipo de material de estudo">
@@ -340,6 +340,7 @@ export default function Explore() {
           initial={false}
           animate={{ opacity: 1, y: 0 }}
           className="glass rounded-3xl p-7 mt-6"
+          aria-live="polite"
         >
           <div className="flex items-center gap-2 mb-4">
             <BookOpen className="w-5 h-5 text-neon-cyan" />
