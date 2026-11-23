@@ -11,10 +11,10 @@ import { useToast } from '../components/Toast.jsx'
 
 const DRAFT_KEY = 'studyhub_quiz_draft'
 const MODE_MOTION = {
-  initial: { y: 8 },
+  initial: { y: 6 },
   animate: { y: 0 },
-  exit: { y: -4 },
-  transition: { duration: 0.2, ease: [0.22, 1, 0.36, 1] }
+  exit: { y: 0, transition: { duration: 0 } },
+  transition: { duration: 0.28, ease: [0.22, 1, 0.36, 1] }
 }
 function readDraft() {
   try {

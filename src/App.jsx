@@ -1,4 +1,5 @@
-import React, { useState, lazy, Suspense } from 'react'
+import React, { useState } from 'react'
+import { MotionConfig } from 'framer-motion'
 import { Routes, Route, Link, useLocation } from 'react-router-dom'
 import { ArrowRight } from 'lucide-react'
 import Navbar from './components/Navbar.jsx'
@@ -8,14 +9,13 @@ import Footer from './components/Footer.jsx'
 import ChatAI from './components/ChatAI.jsx'
 import { ToastProvider } from './components/Toast.jsx'
 import { ThemeProvider } from './components/ThemeToggle.jsx'
-import { useScrollReveal } from './lib/useScrollReveal.js'
 
-const Quiz = lazy(() => import('./pages/Quiz.jsx'))
-const Explore = lazy(() => import('./pages/Explore.jsx'))
-const Simulados = lazy(() => import('./pages/Simulados.jsx'))
-const Flashcards = lazy(() => import('./pages/Flashcards.jsx'))
-const Favoritas = lazy(() => import('./pages/Favoritas.jsx'))
-const Progresso = lazy(() => import('./pages/Progresso.jsx'))
+import Quiz from './pages/Quiz.jsx'
+import Explore from './pages/Explore.jsx'
+import Simulados from './pages/Simulados.jsx'
+import Flashcards from './pages/Flashcards.jsx'
+import Favoritas from './pages/Favoritas.jsx'
+import Progresso from './pages/Progresso.jsx'
 
 const method = [
   {
@@ -31,16 +31,6 @@ const method = [
     text: 'A IA recebe a questão, sua resposta e o gabarito — e explica só o que faltou.'
   }
 ]
-
-function PageFallback() {
-  return (
-    <div className="mx-auto max-w-6xl px-6 pt-32">
-      <div className="glass rounded-3xl p-12 text-center">
-        <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-neon-cyan border-t-transparent" />
-      </div>
-    </div>
-  )
-}
 
 function MethodSection() {
   return (
@@ -113,16 +103,32 @@ function ClosingBand() {
 export default function App() {
   const [chatOpen, setChatOpen] = useState(false)
   const [chatContext, setChatContext] = useState('')
+  const [motionSetting, setMotionSetting] = useState(() => {
+    try {
+      const saved = localStorage.getItem('studyhub_motion')
+      if (saved === 'full' || saved === 'reduce') return saved
+    } catch {}
+    return window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'reduce' : 'full'
+  })
   const location = useLocation()
-  useScrollReveal(location.pathname)
+  const reducedMotion = motionSetting === 'reduce'
+
+  React.useLayoutEffect(() => {
+    document.documentElement.dataset.motion = motionSetting
+    try { localStorage.setItem('studyhub_motion', motionSetting) } catch {}
+  }, [motionSetting])
 
   return (
+    <MotionConfig reducedMotion={reducedMotion ? 'always' : 'never'}>
     <ThemeProvider>
       <ToastProvider>
         <div className="relative min-h-screen">
           <a href="#conteudo-principal" className="skip-link">Pular para o conteúdo principal</a>
-          <Navbar onOpenChat={() => { setChatContext(''); setChatOpen(true) }} />
-          <Suspense fallback={<PageFallback />}>
+          <Navbar
+            onOpenChat={() => { setChatContext(''); setChatOpen(true) }}
+            reducedMotion={reducedMotion}
+            onToggleMotion={() => setMotionSetting((current) => current === 'full' ? 'reduce' : 'full')}
+          />
             <div
               key={location.pathname}
               id="conteudo-principal"
@@ -149,11 +155,11 @@ export default function App() {
                 <Route path="/progresso" element={<Progresso />} />
               </Routes>
             </div>
-          </Suspense>
           <Footer />
           <ChatAI open={chatOpen} onClose={() => setChatOpen(false)} context={chatContext} />
         </div>
       </ToastProvider>
     </ThemeProvider>
+    </MotionConfig>
   )
 }

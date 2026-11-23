@@ -29,12 +29,10 @@ export default function SubjectCards() {
         </p>
       </div>
 
-      <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="stagger mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {subjects.map((subject, index) => (
           <div
             key={subject.name}
-            data-reveal
-            style={{ '--reveal-delay': `${index * 40}ms` }}
             className="h-full"
           >
             <Link

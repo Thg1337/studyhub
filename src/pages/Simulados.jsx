@@ -11,10 +11,10 @@ import { estimatePerformance } from '../lib/score.js'
 const API_BASE = 'https://api.enem.dev/v1'
 const TIME_PER_QUESTION = 180
 const MODE_MOTION = {
-  initial: { y: 8 },
+  initial: { y: 6 },
   animate: { y: 0 },
-  exit: { y: -4 },
-  transition: { duration: 0.2, ease: [0.22, 1, 0.36, 1] }
+  exit: { y: 0, transition: { duration: 0 } },
+  transition: { duration: 0.28, ease: [0.22, 1, 0.36, 1] }
 }
 
 const AREA_LABEL = {
