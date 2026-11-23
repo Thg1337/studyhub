@@ -2,31 +2,48 @@ export function cleanAIResponse(text) {
   if (!text) return text
   let out = String(text)
 
-  // Substitui comandos LaTeX comuns por símbolos legíveis
+  // Conversões LaTeX comuns para texto legível
   const latexMap = [
+    [/\\varphi\b/g, 'φ'],
+    [/\\phi\b/g, 'φ'],
+    [/\\equiv\b/g, '≡'],
     [/\\le\b/g, '≤'],
     [/\\ge\b/g, '≥'],
-    [/\\cdot\b/g, '·'],
-    [/\\times\b/g, '×'],
     [/\\neq\b/g, '≠'],
     [/\\approx\b/g, '≈'],
     [/\\infty\b/g, '∞'],
+    [/\\cdot\b/g, '·'],
+    [/\\times\b/g, '×'],
     [/\\sum\b/g, 'Σ'],
-    [/\\prod\b/g, 'Π'],
+    [/\\prod\b/g, '∏'],
+    [/\\pmod\{([^}]*)\}/g, '(mod $1)'],
+    [/\\text\{([^}]*)\}/g, '$1'],
     [/\\sqrt\{([^}]*)\}/g, '√($1)'],
     [/\\frac\{([^}]*)\}\{([^}]*)\}/g, '($1)/($2)'],
+    [/\\left\(/g, '('],
+    [/\\right\)/g, ')'],
+    [/\\left\[/g, '['],
+    [/\\right\]/g, ']'],
+    [/\\left\{/g, '{'],
+    [/\\right\}/g, '}'],
+    [/\\{/g, '{'],
+    [/\\}/g, '}'],
   ]
   for (const [re, rep] of latexMap) out = out.replace(re, rep)
 
+  // Exponentes e subscritos LaTeX -> notação legível
+  out = out.replace(/([a-zA-Z0-9)])\^{([^}]+)}/g, '$1^($2)')
+  out = out.replace(/([a-zA-Z0-9)])_\{([^}]+)\}/g, '$1_($2)')
+
   // Remove comandos de espaçamento LaTeX
   out = out.replace(/\\(;|,|!|quad|qquad)\b/g, ' ')
-  // Remove \text{...} mantendo o conteúdo
-  out = out.replace(/\\text\{([^}]*)\}/g, '$1')
 
   // Remove cercas de código markdown
   out = out.replace(/```[\s\S]*?```/g, (m) => m.replace(/```/g, '').trim())
   // Remove delimitadores LaTeX soltos
   out = out.replace(/\\\(|\\\)|\\\[|\\\]/g, '')
+  // Remove quebras de linha LaTeX
+  out = out.replace(/\\\\/g, '\n')
   // Remove títulos markdown (# ## ###)
   out = out.replace(/^#{1,6}\s*/gm, '')
   // Remove negrito/itálico markdown
@@ -41,6 +58,7 @@ export function cleanAIResponse(text) {
   out = out.replace(/[ \t]{2,}/g, ' ')
   return out.trim()
 }
+
 export async function askAI(messages, options = {}) {
   const systemParts = []
   const rest = []
