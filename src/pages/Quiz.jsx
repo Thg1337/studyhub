@@ -306,7 +306,7 @@ export default function Quiz({ onOpenChat }) {
                 <button onClick={() => {
                   setQuestions(draft.questions); setAnswers(draft.answers || {}); setRevealed(draft.revealed || {}); setCurrent(draft.current || 0)
                   setTopic(draft.topic || ''); setDiscipline(draft.discipline || 'Não classificada'); setSessionId(draft.sessionId || crypto.randomUUID()); setReviewing(Boolean(draft.reviewing)); setMode('quiz')
-                }} className="mt-3 rounded-xl bg-neon-violet px-4 py-2 text-sm font-semibold text-white">Continuar quiz</button>
+                }} className="btn btn-primary mt-3 !rounded-xl !px-4 !py-2 text-sm">Continuar quiz</button>
               </div>
             )}
 
