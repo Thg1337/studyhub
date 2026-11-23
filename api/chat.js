@@ -3,17 +3,18 @@ import { createOriginChecker } from './_origin.js'
 const isAllowedOrigin = createOriginChecker()
 
 function sanitizeMessages(messages) {
-  if (!Array.isArray(messages)) return []
+  if (!Array.isArray(messages) || messages.length > 40) return null
+  if (messages.some((m) => typeof m?.content !== 'string' || m.content.length > 4000)) return null
+  if (messages.reduce((total, m) => total + m.content.length, 0) > 40000) return null
   return messages
-    .slice(0, 40)
     .map((m) => {
       const role = m?.role === 'assistant' ? 'assistant' : 'user'
-      return { role, content: String(m?.content ?? '').slice(0, 4000) }
+      return { role, content: m.content }
     })
     .filter((m) => m.content.trim().length > 0)
 }
 
-const ALLOWED_MODELS = /^[a-zA-Z0-9][a-zA-Z0-9._/\-]{0,79}$/
+const MODEL = 'openai/gpt-oss-20b'
 
 const UPSTREAM_TIMEOUT_MS = 25000
 
@@ -35,17 +36,19 @@ export default async function handler(req, res) {
 
   const body = req.body || {}
   const messages = sanitizeMessages(body.messages)
-  if (messages.length === 0) {
-    res.status(400).json({ error: 'messages é obrigatório' })
+  if (!messages || messages.length === 0 || typeof body.system !== 'undefined' && (typeof body.system !== 'string' || body.system.length > 4000)) {
+    res.status(400).json({ error: 'Mensagens inválidas ou acima do limite' })
     return
   }
-  const system = String(body.system || '').slice(0, 4000).trim()
+  const system = String(body.system || '').trim()
   const finalMessages = system ? [{ role: 'system', content: system }, ...messages] : messages
 
-  const requestedModel = String(body.model || 'openai/gpt-oss-20b').slice(0, 80)
-  const model = ALLOWED_MODELS.test(requestedModel) ? requestedModel : 'openai/gpt-oss-20b'
+  if (body.model && body.model !== MODEL) {
+    res.status(400).json({ error: 'Modelo não permitido' })
+    return
+  }
   const temperature = Math.min(2, Math.max(0, Number(body.temperature) || 0.7))
-  const max_tokens = Math.min(4096, Math.max(1, Number(body.max_tokens) || 1024))
+  const max_tokens = Math.min(3000, Math.max(1, Number(body.max_tokens) || 1024))
 
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), UPSTREAM_TIMEOUT_MS)
@@ -56,7 +59,7 @@ export default async function handler(req, res) {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${apiKey}`
       },
-      body: JSON.stringify({ model, messages: finalMessages, temperature, max_tokens }),
+      body: JSON.stringify({ model: MODEL, messages: finalMessages, temperature, max_tokens }),
       signal: controller.signal
     })
 
