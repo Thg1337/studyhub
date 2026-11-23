@@ -50,7 +50,7 @@ export default function Explore() {
 
   const fetchAI = async (t) => {
     const messages = [
-      { role: 'system', content: 'Você é um tutor de estudos. Explique o assunto solicitado de forma clara, didática e em português do Brasil. Use tópicos e exemplos curtos. Até ~200 palavras. Responda em texto puro, sem markdown, asteriscos, cerquilhas (#), crases ou LaTeX fora de fórmulas. Para fórmulas, use LaTeX entre $...$ (ex.: $e^{ix}=\\cos x+i\\sin x$).' },
+      { role: 'system', content: 'Você é um tutor de estudos. Explique o assunto solicitado de forma clara, didática e em português do Brasil. Use tópicos e exemplos curtos. Até ~200 palavras. Responda em texto puro, sem markdown, asteriscos, cerquilhas (#), crases ou LaTeX. Não use comandos LaTeX. Use símbolos Unicode (≤, ≥, ≡, ×, ·, √, ∞, Σ, ∏, φ) e notação simples: expoentes com ^ (ex.: a^(phi(n))), frações com / (ex.: (1)/(p)).' },
       { role: 'user', content: `Explique o assunto: ${t}` }
     ]
     return askAI(messages, { max_tokens: 550 })
@@ -89,7 +89,7 @@ export default function Explore() {
       }
       const instruction = instructions[kind] || instructions.resumo
       const messages = [
-        { role: 'system', content: `Você é um tutor em português do Brasil. ${instruction} Responda em texto puro, sem entidades HTML (como &nbsp;), sem markdown, asteriscos, cerquilhas (#), crases ou LaTeX fora de fórmulas. Para fórmulas, use LaTeX entre $...$ (ex.: $e^{ix}=\\cos x+i\\sin x$).` },
+        { role: 'system', content: `Você é um tutor em português do Brasil. ${instruction} Responda em texto puro, sem entidades HTML (como &nbsp;), sem markdown, asteriscos, cerquilhas (#), crases ou LaTeX. Não use comandos LaTeX. Use símbolos Unicode (≤, ≥, ≡, ×, ·, √, ∞, Σ, ∏, φ) e notação simples: expoentes com ^ (ex.: a^(phi(n))), frações com / (ex.: (1)/(p)).` },
         { role: 'user', content: `Assunto: ${t}` }
       ]
       setSummary(await askAI(messages, { temperature: 0.5, max_tokens: 900 }))

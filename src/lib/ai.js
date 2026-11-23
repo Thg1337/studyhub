@@ -54,6 +54,9 @@ export function cleanAIResponse(text) {
   // Remove crases de código inline
   out = out.replace(/`([^`]+)`/g, '$1')
 
+  // Remove qualquer comando LaTeX restante não convertido
+  out = out.replace(/\\[a-zA-Z]+/g, '')
+
   // Colapsa espaços múltiplos
   out = out.replace(/[ \t]{2,}/g, ' ')
   return out.trim()
