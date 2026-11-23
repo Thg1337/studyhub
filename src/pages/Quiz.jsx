@@ -87,7 +87,7 @@ export default function Quiz({ onOpenChat }) {
     setExplaining((prev) => ({ ...prev, [item.id]: true }))
     try {
       const text = await askAI([
-        { role: 'system', content: 'Você é tutor do ENEM. Explique em português por que a alternativa escolhida está errada e por que o gabarito está certo, com um exemplo breve. Não altere o gabarito informado. Responda em texto puro, sem markdown, asteriscos, cerquilhas (#), crases ou LaTeX.' },
+        { role: 'system', content: 'Você é tutor do ENEM. Explique em português por que a alternativa escolhida está errada e por que o gabarito está certo, com um exemplo breve. Não altere o gabarito informado. Responda em texto puro, sem markdown, asteriscos, cerquilhas (#), crases. Para fórmulas, use LaTeX entre $...$ (ex.: $e^{ix}=\\cos x+i\\sin x$). Não use comandos LaTeX soltos como \\; ou \\qquad.' },
         { role: 'user', content: questionContext(item, selected) }
       ], { max_tokens: 450 })
       setExplanations((prev) => ({ ...prev, [item.id]: text }))

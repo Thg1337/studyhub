@@ -1,9 +1,31 @@
 export function cleanAIResponse(text) {
   if (!text) return text
   let out = String(text)
+
+  // Substitui comandos LaTeX comuns por símbolos legíveis
+  const latexMap = [
+    [/\\le\b/g, '≤'],
+    [/\\ge\b/g, '≥'],
+    [/\\cdot\b/g, '·'],
+    [/\\times\b/g, '×'],
+    [/\\neq\b/g, '≠'],
+    [/\\approx\b/g, '≈'],
+    [/\\infty\b/g, '∞'],
+    [/\\sum\b/g, 'Σ'],
+    [/\\prod\b/g, 'Π'],
+    [/\\sqrt\{([^}]*)\}/g, '√($1)'],
+    [/\\frac\{([^}]*)\}\{([^}]*)\}/g, '($1)/($2)'],
+  ]
+  for (const [re, rep] of latexMap) out = out.replace(re, rep)
+
+  // Remove comandos de espaçamento LaTeX
+  out = out.replace(/\\(;|,|!|quad|qquad)\b/g, ' ')
+  // Remove \text{...} mantendo o conteúdo
+  out = out.replace(/\\text\{([^}]*)\}/g, '$1')
+
   // Remove cercas de código markdown
   out = out.replace(/```[\s\S]*?```/g, (m) => m.replace(/```/g, '').trim())
-  // Remove delimitadores LaTeX
+  // Remove delimitadores LaTeX soltos
   out = out.replace(/\\\(|\\\)|\\\[|\\\]/g, '')
   // Remove títulos markdown (# ## ###)
   out = out.replace(/^#{1,6}\s*/gm, '')
@@ -14,6 +36,9 @@ export function cleanAIResponse(text) {
   out = out.replace(/_(.+?)_/g, '$1')
   // Remove crases de código inline
   out = out.replace(/`([^`]+)`/g, '$1')
+
+  // Colapsa espaços múltiplos
+  out = out.replace(/[ \t]{2,}/g, ' ')
   return out.trim()
 }
 export async function askAI(messages, options = {}) {
