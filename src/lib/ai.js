@@ -1,3 +1,21 @@
+export function cleanAIResponse(text) {
+  if (!text) return text
+  let out = String(text)
+  // Remove cercas de código markdown
+  out = out.replace(/```[\s\S]*?```/g, (m) => m.replace(/```/g, '').trim())
+  // Remove delimitadores LaTeX
+  out = out.replace(/\\\(|\\\)|\\\[|\\\]/g, '')
+  // Remove títulos markdown (# ## ###)
+  out = out.replace(/^#{1,6}\s*/gm, '')
+  // Remove negrito/itálico markdown
+  out = out.replace(/\*\*(.+?)\*\*/g, '$1')
+  out = out.replace(/__(.+?)__/g, '$1')
+  out = out.replace(/\*(.+?)\*/g, '$1')
+  out = out.replace(/_(.+?)_/g, '$1')
+  // Remove crases de código inline
+  out = out.replace(/`([^`]+)`/g, '$1')
+  return out.trim()
+}
 export async function askAI(messages, options = {}) {
   const systemParts = []
   const rest = []
@@ -26,7 +44,7 @@ export async function askAI(messages, options = {}) {
     const data = await response.json()
     const text = data?.choices?.[0]?.message?.content?.trim()
     if (!text) throw new Error('A IA não retornou uma resposta.')
-    return text
+    return cleanAIResponse(text)
   }
 
   // Uma tentativa de retry em falhas transitórias (rede ou 5xx).

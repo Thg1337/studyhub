@@ -50,7 +50,7 @@ export default function Explore() {
 
   const fetchAI = async (t) => {
     const messages = [
-      { role: 'system', content: 'Você é um tutor de estudos. Explique o assunto solicitado de forma clara, didática e em português do Brasil. Use tópicos e exemplos curtos. Até ~200 palavras.' },
+      { role: 'system', content: 'Você é um tutor de estudos. Explique o assunto solicitado de forma clara, didática e em português do Brasil. Use tópicos e exemplos curtos. Até ~200 palavras. Responda em texto puro, sem markdown, asteriscos, cerquilhas (#), crases ou LaTeX.' },
       { role: 'user', content: `Explique o assunto: ${t}` }
     ]
     return askAI(messages)

@@ -87,7 +87,7 @@ export default function Quiz({ onOpenChat }) {
     setExplaining((prev) => ({ ...prev, [item.id]: true }))
     try {
       const text = await askAI([
-        { role: 'system', content: 'Você é tutor do ENEM. Explique em português por que a alternativa escolhida está errada e por que o gabarito está certo, com um exemplo breve. Não altere o gabarito informado.' },
+        { role: 'system', content: 'Você é tutor do ENEM. Explique em português por que a alternativa escolhida está errada e por que o gabarito está certo, com um exemplo breve. Não altere o gabarito informado. Responda em texto puro, sem markdown, asteriscos, cerquilhas (#), crases ou LaTeX.' },
         { role: 'user', content: questionContext(item, selected) }
       ])
       setExplanations((prev) => ({ ...prev, [item.id]: text }))

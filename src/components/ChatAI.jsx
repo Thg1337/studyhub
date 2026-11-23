@@ -4,7 +4,8 @@ import { X, Send, Sparkles, Bot, User } from 'lucide-react'
 
 const SYSTEM_PROMPT = `Você é um tutor de estudos amigável, didático e paciente. Responda em português do Brasil.
 Simplifique conceitos, use exemplos claros e curtos. Se o aluno errar, corrija com gentileza.
-Mantenha respostas concisas (até ~120 palavras) e focadas no aprendizado.`
+Mantenha respostas concisas (até ~120 palavras) e focadas no aprendizado.
+Responda em texto puro: não use markdown, asteriscos, cerquilhas (#), crases ou LaTeX.`
 
 export default function ChatAI({ open, onClose, context }) {
   const [messages, setMessages] = React.useState([
