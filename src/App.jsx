@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, lazy, Suspense } from 'react'
 import { MotionConfig } from 'framer-motion'
 import { Routes, Route, Link, useLocation } from 'react-router-dom'
 import { ArrowRight } from 'lucide-react'
@@ -10,12 +10,12 @@ import ChatAI from './components/ChatAI.jsx'
 import { ToastProvider } from './components/Toast.jsx'
 import { ThemeProvider } from './components/ThemeToggle.jsx'
 
-import Quiz from './pages/Quiz.jsx'
-import Explore from './pages/Explore.jsx'
-import Simulados from './pages/Simulados.jsx'
-import Flashcards from './pages/Flashcards.jsx'
-import Favoritas from './pages/Favoritas.jsx'
-import Progresso from './pages/Progresso.jsx'
+const Quiz = lazy(() => import('./pages/Quiz.jsx'))
+const Explore = lazy(() => import('./pages/Explore.jsx'))
+const Simulados = lazy(() => import('./pages/Simulados.jsx'))
+const Flashcards = lazy(() => import('./pages/Flashcards.jsx'))
+const Favoritas = lazy(() => import('./pages/Favoritas.jsx'))
+const Progresso = lazy(() => import('./pages/Progresso.jsx'))
 
 const method = [
   {
