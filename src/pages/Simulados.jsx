@@ -5,6 +5,7 @@ import { toggleFavorite, isFavorite, updateFavoriteAnswer } from '../lib/favorit
 import { recordResult } from '../lib/spaced.js'
 import { recordStudy, recordAnswer } from '../lib/progress.js'
 import { askAI } from '../lib/ai.js'
+import AIResponse from '../components/AIResponse.jsx'
 import { safeImageUrl } from '../lib/safeUrl.js'
 import { estimatePerformance } from '../lib/score.js'
 
@@ -97,9 +98,9 @@ export default function Simulados({ onOpenChat }) {
     try {
       const selected = answers[item.id]
       const text = await askAI([
-        { role: 'system', content: 'Tutor ENEM: explique por que a resposta escolhida está errada e por que o gabarito informado está certo. Se faltar informação no enunciado ou imagem, informe a limitação. Não altere o gabarito fornecido.' },
+        { role: 'system', content: 'Tutor ENEM: explique por que a resposta escolhida está errada e por que o gabarito informado está certo. Se faltar informação no enunciado ou imagem, informe a limitação. Não altere o gabarito fornecido. Organize em passos curtos com Markdown simples. Coloque fórmulas entre $...$ ou $$...$$ e confira as contas.' },
         { role: 'user', content: `Enunciado: ${item.q}\nAlternativas: ${item.opts.map((o, i) => `${String.fromCharCode(65 + i)}) ${o}`).join(' | ')}\nResposta do aluno: ${selected === undefined ? 'em branco' : `${String.fromCharCode(65 + selected)}) ${item.opts[selected]}`}\nGabarito: ${String.fromCharCode(65 + item.correctIndex)}) ${item.opts[item.correctIndex]}` }
-      ], { max_tokens: 450 })
+      ], { max_tokens: 800 })
       setExplanations((prev) => ({ ...prev, [item.id]: text }))
     } catch (e) { setExplanations((prev) => ({ ...prev, [item.id]: `IA indisponível: ${e.message}` })) }
     finally { setExplaining((prev) => ({ ...prev, [item.id]: false })) }
@@ -738,7 +739,7 @@ export default function Simulados({ onOpenChat }) {
                       </div>
                       {!r.correct && <div className="mt-2 text-sm">
                         <button disabled={explaining[r.id]} onClick={() => explainError(r)} className="text-neon-cyan no-print">{explaining[r.id] ? 'Explicando…' : 'Explicar meu erro com IA'}</button>
-                        {explanations[r.id] && <p className="whitespace-pre-line mt-2">{explanations[r.id]}</p>}
+                        {explanations[r.id] && <AIResponse text={explanations[r.id]} className="mt-3" />}
                       </div>}
                       <button onClick={() => onOpenChat?.(`Questão: ${r.q}\nAlternativas: ${r.opts.map((o, i) => `${String.fromCharCode(65 + i)}) ${o}`).join(' | ')}\nSua resposta: ${answers[r.id] === undefined ? 'em branco' : r.opts[answers[r.id]]}\nGabarito: ${r.opts[r.correctIndex]}`)} className="text-xs text-neon-cyan mt-2 no-print">Perguntar ao tutor</button>
                     </div>

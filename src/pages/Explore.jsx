@@ -5,7 +5,7 @@ import { Search, Sparkles, Play, Loader2, BookOpen, Youtube, BrainCircuit, Calcu
 import Skeleton from '../components/Skeleton.jsx'
 import { useToast } from '../components/Toast.jsx'
 import { askAI } from '../lib/ai.js'
-import MathText from '../components/MathText.jsx'
+import AIResponse from '../components/AIResponse.jsx'
 
 const ENTITY_MAP = {
   nbsp: '\u00A0',
@@ -50,10 +50,10 @@ export default function Explore() {
 
   const fetchAI = async (t) => {
     const messages = [
-      { role: 'system', content: 'Você é um tutor de estudos. Explique o assunto solicitado de forma clara, didática e em português do Brasil. Use tópicos e exemplos curtos. Até ~200 palavras. Responda em texto puro, sem markdown, asteriscos, cerquilhas (#), crases ou LaTeX. Não use comandos LaTeX. Use símbolos Unicode (≤, ≥, ≡, ×, ·, √, ∞, Σ, ∏, φ) e notação simples: expoentes com ^ (ex.: a^(phi(n))), frações com / (ex.: (1)/(p)).' },
+      { role: 'system', content: 'Você é um tutor de estudos. Explique em português do Brasil com um resumo inicial, tópicos curtos e um exemplo. Até 200 palavras. Use Markdown simples e fórmulas entre $...$ ou $$...$$. Confira as contas e não use comandos LaTeX fora das fórmulas.' },
       { role: 'user', content: `Explique o assunto: ${t}` }
     ]
-    return askAI(messages, { max_tokens: 550 })
+    return askAI(messages, { max_tokens: 800 })
   }
 
   const fetchVideos = async (t) => {
@@ -89,10 +89,10 @@ export default function Explore() {
       }
       const instruction = instructions[kind] || instructions.resumo
       const messages = [
-        { role: 'system', content: `Você é um tutor em português do Brasil. ${instruction} Responda em texto puro, sem entidades HTML (como &nbsp;), sem markdown, asteriscos, cerquilhas (#), crases ou LaTeX. Não use comandos LaTeX. Use símbolos Unicode (≤, ≥, ≡, ×, ·, √, ∞, Σ, ∏, φ) e notação simples: expoentes com ^ (ex.: a^(phi(n))), frações com / (ex.: (1)/(p)).` },
+        { role: 'system', content: `Você é um tutor em português do Brasil. ${instruction} Use Markdown simples, sem entidades HTML. Coloque fórmulas entre $...$ ou $$...$$, confira as contas e não use comandos LaTeX fora das fórmulas.` },
         { role: 'user', content: `Assunto: ${t}` }
       ]
-      setSummary(await askAI(messages, { temperature: 0.5, max_tokens: 900 }))
+      setSummary(await askAI(messages, { temperature: 0.5, max_tokens: 1200 }))
     } catch (e) {
       toast(e.message || 'Erro ao gerar resumo.', 'error')
     } finally {
@@ -260,7 +260,7 @@ export default function Explore() {
                 </div>
               ) : (
                 <div className="flex-1 overflow-y-auto scrollbar-thin pr-1">
-                  <p key={activeTopic} className="answer-in text-gray-700 dark:text-white/80 leading-relaxed whitespace-pre-line"><MathText text={decodeEntities(aiText)} /></p>
+                  <AIResponse key={activeTopic} text={decodeEntities(aiText)} className="answer-in" />
                 </div>
               )}
             </div>
@@ -346,9 +346,7 @@ export default function Explore() {
             <BookOpen className="w-5 h-5 text-neon-cyan" />
             <h2 className="font-display text-xl font-bold">{({ resumo: 'Resumo de revisão', mapa: 'Mapa mental em texto', formulas: 'Fórmulas e regras', revisao: 'Revisão ativa de 5 minutos' })[summaryKind]}</h2>
           </div>
-          <div className="text-gray-700 dark:text-white/80 leading-relaxed whitespace-pre-line text-sm">
-            <MathText text={decodeEntities(summary)} />
-          </div>
+          <AIResponse text={decodeEntities(summary)} />
         </motion.div>
       )}
     </div>

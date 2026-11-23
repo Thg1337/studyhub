@@ -46,7 +46,7 @@ export default function Flashcards() {
       const text = await askAI([
         { role: 'system', content: 'Crie exatamente 5 flashcards de revisão para o ENEM. Responda APENAS com JSON: [{"front":"pergunta","back":"resposta curta"}]. Sem markdown.' },
         { role: 'user', content: `Assunto: ${topic.trim()}` }
-      ], { max_tokens: 1000 })
+      ], { max_tokens: 1000, format: 'json' })
       const parsed = JSON.parse(text.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/i, ''))
       if (!Array.isArray(parsed)) throw new Error('Formato inválido')
       const next = parsed.filter((item) => typeof item.front === 'string' && typeof item.back === 'string' && item.front.trim() && item.back.trim()).slice(0, 5)

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { Bot, CheckCircle2, Image as ImageIcon, Loader2, MessageCircle, Search, Sparkles, Star, Trash2, X, XCircle } from 'lucide-react'
 import { getFavorites, removeFavorite, updateFavoriteAnswer } from '../lib/favorites.js'
 import { askAI } from '../lib/ai.js'
+import AIResponse from '../components/AIResponse.jsx'
 
 const IMAGE_PATTERN = /!\[([^\]]*)\]\((https?:\/\/[^\s)]+)(?:\s+"[^"]*")?\)/g
 
@@ -108,9 +109,9 @@ export default function Favoritas({ onOpenChat }) {
           : 'Você é um tutor do ENEM. Explique de forma gentil e personalizada por que a alternativa que o aluno escolheu está errada e por que o gabarito está correto. Mostre o raciocínio passo a passo; não invente informações.'
         : 'Você é um tutor do ENEM. Dê uma dica útil e um primeiro passo para resolver a questão, SEM revelar nem sugerir a letra do gabarito.'
       const response = await askAI([
-        { role: 'system', content: `${system} Você recebe apenas texto; não analisa imagens. Se a imagem for essencial, reconheça a limitação e peça ao aluno para descrevê-la.` },
+        { role: 'system', content: `${system} Você recebe apenas texto; não analisa imagens. Se a imagem for essencial, reconheça a limitação e peça ao aluno para descrevê-la. Organize a resposta com título breve, passos numerados e conclusão. Use Markdown simples e coloque fórmulas entre $...$ ou $$...$$. Confira contas e desigualdades antes de concluir; se faltarem dados, diga isso. Não use comandos LaTeX fora das fórmulas.` },
         { role: 'user', content: questionContext(item, selected) }
-      ], { max_tokens: 650, temperature: 0.4 })
+      ], { max_tokens: 1200, temperature: 0.3 })
       setExplanations((previous) => ({ ...previous, [item.id]: response }))
     } catch (error) {
       setExplanations((previous) => ({ ...previous, [item.id]: `Não foi possível consultar a IA: ${error.message}` }))
@@ -198,9 +199,9 @@ export default function Favoritas({ onOpenChat }) {
                   <MessageCircle className="h-4 w-4" /> Conversar com o tutor
                 </button>
               </div>
-              {explanations[item.id] && <div role="status" className="mt-4 rounded-2xl border border-neon-violet/30 bg-neon-violet/10 p-5">
-                <div className="mb-2 flex items-center gap-2 font-semibold"><Bot className="h-5 w-5 text-neon-violet" /> Explicação do tutor</div>
-                <p className="whitespace-pre-line text-sm leading-relaxed">{explanations[item.id]}</p>
+              {explanations[item.id] && <div role="status" className="mt-5 rounded-2xl border border-neon-violet/30 bg-neon-violet/10 p-5 sm:p-6">
+                <div className="mb-4 flex items-center gap-3 border-b border-line pb-3 font-display font-semibold"><span className="flex h-9 w-9 items-center justify-center rounded-xl bg-neon-violet/15"><Bot className="h-5 w-5 text-neon-violet" /></span> Explicação do tutor</div>
+                <AIResponse text={explanations[item.id]} />
               </div>}
             </article>)}
           </div>

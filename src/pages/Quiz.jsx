@@ -6,6 +6,7 @@ import { toggleFavorite, isFavorite, updateFavoriteAnswer } from '../lib/favorit
 import { recordResult, getDue } from '../lib/spaced.js'
 import { recordStudy, recordAnswer, getProgress, getStreak, setDailyGoal, todayCount } from '../lib/progress.js'
 import { askAI } from '../lib/ai.js'
+import AIResponse from '../components/AIResponse.jsx'
 import { safeImageUrl } from '../lib/safeUrl.js'
 import MathText from '../components/MathText.jsx'
 
@@ -87,9 +88,9 @@ export default function Quiz({ onOpenChat }) {
     setExplaining((prev) => ({ ...prev, [item.id]: true }))
     try {
       const text = await askAI([
-        { role: 'system', content: 'Você é tutor do ENEM. Explique em português por que a alternativa escolhida está errada e por que o gabarito está certo, com um exemplo breve. Não altere o gabarito informado. Responda em texto puro, sem markdown, asteriscos, cerquilhas (#), crases ou LaTeX. Não use comandos LaTeX. Use símbolos Unicode (≤, ≥, ≡, ×, ·, √, ∞, Σ, ∏, φ) e notação simples: expoentes com ^ (ex.: a^(phi(n))), frações com / (ex.: (1)/(p)).' },
+        { role: 'system', content: 'Você é tutor do ENEM. Explique em português por que a alternativa escolhida está errada e por que o gabarito está certo, com um exemplo breve. Não altere o gabarito informado. Organize em passos curtos com Markdown simples. Coloque fórmulas entre $...$ ou $$...$$ e confira as contas.' },
         { role: 'user', content: questionContext(item, selected) }
-      ], { max_tokens: 450 })
+      ], { max_tokens: 800 })
       setExplanations((prev) => ({ ...prev, [item.id]: text }))
     } catch (e) {
       setExplanations((prev) => ({ ...prev, [item.id]: `Não foi possível consultar a IA: ${e.message}` }))
@@ -120,7 +121,7 @@ export default function Quiz({ onOpenChat }) {
         }
       ]
 
-      const text = await askAI(messages, { temperature: 0.8, max_tokens: Math.min(3000, 1200 + count * 160) })
+      const text = await askAI(messages, { temperature: 0.8, max_tokens: Math.min(3000, 1200 + count * 160), format: 'json' })
       const qs = parseQuestions(text)
       if (qs.length === 0) throw new Error('A IA não retornou questões válidas. Tente novamente.')
       toast('Questões geradas com sucesso!', 'success')
@@ -416,7 +417,7 @@ export default function Quiz({ onOpenChat }) {
                       Gabarito: <span className="font-bold text-neon-cyan">{String.fromCharCode(65 + q.correct)}</span>
                     </p>
                    )}
-                    {answers[q.id] !== q.correct && <p className="text-sm mt-3 whitespace-pre-line">{explaining[q.id] ? 'IA explicando seu erro…' : (explanations[q.id] ? <MathText text={explanations[q.id]} /> : <button onClick={() => explainError(q)} className="text-neon-cyan">Gerar explicação personalizada</button>)}</p>}
+                    {answers[q.id] !== q.correct && <div className="mt-3">{explaining[q.id] ? 'IA explicando seu erro…' : (explanations[q.id] ? <AIResponse text={explanations[q.id]} /> : <button onClick={() => explainError(q)} className="text-neon-cyan">Gerar explicação personalizada</button>)}</div>}
                     <button onClick={() => onOpenChat?.(questionContext(q, answers[q.id]))} className="mt-3 block text-xs text-neon-cyan hover:underline">Perguntar ao tutor sobre esta questão</button>
                     <div className="mt-4 flex flex-wrap gap-2" aria-label="Definir intervalo de revisão">
                       <span className="w-full text-xs text-gray-500 dark:text-white/60">Como foi para lembrar?</span>
@@ -490,7 +491,7 @@ export default function Quiz({ onOpenChat }) {
                           Sua resposta: {answers[q.id] !== undefined ? String.fromCharCode(65 + answers[q.id]) : '—'} · Gabarito: {String.fromCharCode(65 + q.correct)}
                         </div>
                          {q.explain && <p className="text-gray-700 dark:text-white/70 text-sm mt-2"><MathText text={q.explain} /></p>}
-                         {explanations[q.id] && <p className="text-sm whitespace-pre-line mt-2">{explanations[q.id]}</p>}
+                         {explanations[q.id] && <AIResponse text={explanations[q.id]} className="mt-3" />}
                 <button
                   onClick={() => onOpenChat?.(questionContext(q, answers[q.id]))}
                   className="mt-3 inline-flex items-center gap-2 text-xs text-neon-cyan hover:underline"

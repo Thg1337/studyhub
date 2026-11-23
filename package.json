@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "node --test tests/score.test.mjs tests/favorites.test.mjs tests/study.test.mjs tests/origin.test.mjs"
+    "test": "node --test tests/*.test.mjs"
   },
   "dependencies": {
     "framer-motion": "^11.11.11",
@@ -15,7 +15,13 @@
     "lucide-react": "^0.454.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "react-router-dom": "^6.28.0"
+    "react-markdown": "^10.1.0",
+    "react-router-dom": "^6.28.0",
+    "rehype-katex": "^7.0.1",
+    "remark-math": "^6.0.0"
+  },
+  "overrides": {
+    "katex": "$katex"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.3.3",

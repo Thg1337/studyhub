@@ -1,12 +1,15 @@
 import React from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { X, Send, Sparkles, Bot, User } from 'lucide-react'
 import MathText from './MathText.jsx'
+import { askAI } from '../lib/ai.js'
+
+const AIResponse = React.lazy(() => import('./AIResponse.jsx'))
 
 const SYSTEM_PROMPT = `Você é um tutor de estudos amigável, didático e paciente. Responda em português do Brasil.
 Simplifique conceitos, use exemplos claros e curtos. Se o aluno errar, corrija com gentileza.
 Mantenha respostas concisas (até ~120 palavras) e focadas no aprendizado.
-Responda em texto puro: não use markdown, asteriscos, cerquilhas (#), crases ou LaTeX.
-Não use comandos LaTeX. Use símbolos Unicode (≤, ≥, ≡, ×, ·, √, ∞, Σ, ∏, φ) e notação simples: expoentes com ^ (ex.: a^(phi(n))), frações com / (ex.: (1)/(p)).`
+Organize em parágrafos curtos ou passos numerados com Markdown simples. Coloque fórmulas entre $...$ ou $$...$$, confira as contas e não use comandos LaTeX fora das fórmulas.`
 
 export default function ChatAI({ open, onClose, context }) {
   const [messages, setMessages] = React.useState([
@@ -43,22 +46,7 @@ export default function ChatAI({ open, onClose, context }) {
         .slice(-8)
         .map((m) => ({ role: m.role, content: m.text }))
 
-      const res = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: apiMessages, system: systemContent, temperature: 0.7, max_tokens: 700 })
-      })
-
-      if (!res.ok) {
-        const errText = await res.text()
-        let message = errText
-        try {
-          message = JSON.parse(errText)?.error || errText
-        } catch { /* resposta não era JSON */ }
-        throw new Error(message || `IA indisponível (${res.status})`)
-      }
-      const data = await res.json()
-      const reply = data?.choices?.[0]?.message?.content?.trim() || 'Não consegui gerar uma resposta. Tente novamente.'
+      const reply = await askAI([{ role: 'system', content: systemContent }, ...apiMessages], { max_tokens: 900 })
       setMessages((m) => [...m, { role: 'assistant', text: reply }])
     } catch (err) {
       setMessages((m) => [...m, { role: 'assistant', text: `⚠️ Erro ao consultar a IA: ${err.message}` }])
@@ -128,13 +116,13 @@ export default function ChatAI({ open, onClose, context }) {
                       </div>
                     )}
                     <div
-                      className={`max-w-[75%] px-4 py-3 rounded-2xl text-sm leading-relaxed ${
+                      className={`min-w-0 max-w-[90%] sm:max-w-[80%] px-4 py-3 rounded-2xl text-sm leading-relaxed ${
                         m.role === 'user'
                           ? 'bg-neon-cyan text-ink-950 rounded-br-sm'
                           : 'glass rounded-bl-sm'
                       }`}
                     >
-                      <MathText text={m.text} />
+                      {m.role === 'assistant' ? <React.Suspense fallback={<MathText text={m.text} />}><AIResponse text={m.text} /></React.Suspense> : <MathText text={m.text} />}
                     </div>
                     {m.role === 'user' && (
                       <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center shrink-0">
