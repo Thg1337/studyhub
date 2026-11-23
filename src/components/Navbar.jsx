@@ -14,7 +14,7 @@ const links = [
   { to: '/quiz/Matemática', label: 'Prática' }
 ]
 
-export default function Navbar({ onOpenChat, reducedMotion, onToggleMotion }) {
+export default function Navbar({ onOpenChat }) {
   const [open, setOpen] = React.useState(false)
   const loc = useLocation()
   const { theme, toggle } = useTheme()
@@ -45,16 +45,6 @@ export default function Navbar({ onOpenChat, reducedMotion, onToggleMotion }) {
           </nav>
 
           <div className="flex items-center gap-2">
-            <button
-              onClick={onToggleMotion}
-              className="motion-toggle flex h-9 items-center gap-1.5 rounded-full border border-line px-2.5 text-xs text-muted transition-colors duration-150 hover:border-line-strong hover:text-fg"
-              aria-label={reducedMotion ? 'Ativar animações' : 'Reduzir animações'}
-              aria-pressed={!reducedMotion}
-              title={reducedMotion ? 'Ativar animações' : 'Reduzir animações'}
-            >
-              <Sparkles className="h-4 w-4" aria-hidden="true" />
-              <span className="hidden xl:inline">Animações</span>
-            </button>
             <button
               onClick={toggle}
               className="flex h-9 w-9 items-center justify-center rounded-full border border-line text-muted transition-colors duration-150 hover:border-line-strong hover:text-fg"

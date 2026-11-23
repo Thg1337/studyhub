@@ -103,32 +103,15 @@ function ClosingBand() {
 export default function App() {
   const [chatOpen, setChatOpen] = useState(false)
   const [chatContext, setChatContext] = useState('')
-  const [motionSetting, setMotionSetting] = useState(() => {
-    try {
-      const saved = localStorage.getItem('studyhub_motion')
-      if (saved === 'full' || saved === 'reduce') return saved
-    } catch {}
-    return window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'reduce' : 'full'
-  })
   const location = useLocation()
-  const reducedMotion = motionSetting === 'reduce'
-
-  React.useLayoutEffect(() => {
-    document.documentElement.dataset.motion = motionSetting
-    try { localStorage.setItem('studyhub_motion', motionSetting) } catch {}
-  }, [motionSetting])
 
   return (
-    <MotionConfig reducedMotion={reducedMotion ? 'always' : 'never'}>
+    <MotionConfig reducedMotion="never">
     <ThemeProvider>
       <ToastProvider>
         <div className="relative min-h-screen">
           <a href="#conteudo-principal" className="skip-link">Pular para o conteúdo principal</a>
-          <Navbar
-            onOpenChat={() => { setChatContext(''); setChatOpen(true) }}
-            reducedMotion={reducedMotion}
-            onToggleMotion={() => setMotionSetting((current) => current === 'full' ? 'reduce' : 'full')}
-          />
+          <Navbar onOpenChat={() => { setChatContext(''); setChatOpen(true) }} />
             <div
               key={location.pathname}
               id="conteudo-principal"

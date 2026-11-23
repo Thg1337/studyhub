@@ -506,30 +506,6 @@ html:not(.dark) .text-neon-cyan { color: #55670a; }
 html:not(.dark) .text-neon-violet { color: #6b6455; }
 html:not(.dark) .text-neon-pink { color: #b4551f; }
 
-html[data-motion='reduce'] *,
-html[data-motion='reduce'] *::before,
-html[data-motion='reduce'] *::after {
-  animation-duration: .01ms !important;
-  animation-delay: 0ms !important;
-  animation-iteration-count: 1 !important;
-  scroll-behavior: auto !important;
-  transition-duration: .01ms !important;
-}
-html[data-motion='reduce'] :is(.reveal, .page-enter, .stagger > *) { transform: none; }
-
-@media (prefers-reduced-motion: reduce) {
-  html:not([data-motion='full']) *,
-  html:not([data-motion='full']) *::before,
-  html:not([data-motion='full']) *::after {
-    animation-duration: .01ms !important;
-    animation-delay: 0ms !important;
-    animation-iteration-count: 1 !important;
-    scroll-behavior: auto !important;
-    transition-duration: .01ms !important;
-  }
-  html:not([data-motion='full']) :is(.reveal, .page-enter, .stagger > *) { transform: none; }
-}
-
 @media print {
   nav, header, footer, button, .no-print { display: none !important; }
   [data-reveal] { opacity: 1 !important; transform: none !important; }
