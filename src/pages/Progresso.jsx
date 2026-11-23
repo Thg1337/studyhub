@@ -2,6 +2,7 @@ import React from 'react'
 import { BarChart3, Clock3, Flame, Target, TrendingUp } from 'lucide-react'
 import { getDashboard, getProgress, getStreak, setDailyGoal, todayCount } from '../lib/progress.js'
 import { exportStudyData, importStudyData } from '../lib/dataTransfer.js'
+import { useToast } from '../components/Toast.jsx'
 
 const formatTime = (milliseconds) => {
   const minutes = Math.round(milliseconds / 60000)
@@ -12,6 +13,7 @@ const formatTime = (milliseconds) => {
 export default function Progresso() {
   const [progress, setProgress] = React.useState(getProgress)
   const [dashboard, setDashboard] = React.useState(getDashboard)
+  const toast = useToast()
   // Recarrega apenas quando a página é montada; evitar piscar ao trocar de aba.
   const max = Math.max(...dashboard.week.map((day) => day.count), 1)
 
@@ -63,9 +65,9 @@ export default function Progresso() {
             try {
               await importStudyData(file)
               setProgress(getProgress())
-              alert('Dados importados. Recarregue a página para atualizar tudo.')
+              toast('Dados importados. Recarregue a página para atualizar tudo.', 'success')
             } catch (err) {
-              alert(err.message || 'Erro ao importar.')
+              toast(err.message || 'Erro ao importar.', 'error')
             } finally {
               e.target.value = ''
             }
