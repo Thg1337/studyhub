@@ -7,7 +7,7 @@ import { recordResult, getDue } from '../lib/spaced.js'
 import { recordStudy, recordAnswer, getProgress, getStreak, setDailyGoal, todayCount } from '../lib/progress.js'
 import { askAI } from '../lib/ai.js'
 import { safeImageUrl } from '../lib/safeUrl.js'
-import { useToast } from '../components/Toast.jsx'
+import MathText from '../components/MathText.jsx'
 
 const DRAFT_KEY = 'studyhub_quiz_draft'
 const MODE_MOTION = {
@@ -410,13 +410,13 @@ export default function Quiz({ onOpenChat }) {
                       {answers[q.id] === q.correct ? 'Correto!' : 'Resposta incorreta'}
                     </span>
                   </div>
-                  {q.explain && <p className="text-gray-700 dark:text-white/80 text-sm">{q.explain}</p>}
+                  {q.explain && <p className="text-gray-700 dark:text-white/80 text-sm"><MathText text={q.explain} /></p>}
                    {answers[q.id] !== q.correct && (
                     <p className="text-gray-600 dark:text-white/70 text-sm mt-2">
                       Gabarito: <span className="font-bold text-neon-cyan">{String.fromCharCode(65 + q.correct)}</span>
                     </p>
                    )}
-                    {answers[q.id] !== q.correct && <p className="text-sm mt-3 whitespace-pre-line">{explaining[q.id] ? 'IA explicando seu erro…' : explanations[q.id] || <button onClick={() => explainError(q)} className="text-neon-cyan">Gerar explicação personalizada</button>}</p>}
+                    {answers[q.id] !== q.correct && <p className="text-sm mt-3 whitespace-pre-line">{explaining[q.id] ? 'IA explicando seu erro…' : (explanations[q.id] ? <MathText text={explanations[q.id]} /> : <button onClick={() => explainError(q)} className="text-neon-cyan">Gerar explicação personalizada</button>)}</p>}
                     <button onClick={() => onOpenChat?.(questionContext(q, answers[q.id]))} className="mt-3 block text-xs text-neon-cyan hover:underline">Perguntar ao tutor sobre esta questão</button>
                     <div className="mt-4 flex flex-wrap gap-2" aria-label="Definir intervalo de revisão">
                       <span className="w-full text-xs text-gray-500 dark:text-white/60">Como foi para lembrar?</span>
@@ -473,7 +473,7 @@ export default function Quiz({ onOpenChat }) {
                 <strong>{index + 1}. {item.q}</strong>
                 {item.opts.map((option, i) => <p key={i}>{String.fromCharCode(65 + i)}) {option}</p>)}
                 <p>Sua resposta: {answers[item.id] === undefined ? 'Em branco' : String.fromCharCode(65 + answers[item.id])} · Gabarito: {String.fromCharCode(65 + item.correct)}</p>
-                <p>{explanations[item.id] || item.explain}</p>
+                <p><MathText text={explanations[item.id] || item.explain} /></p>
               </div>)}
             </div>
 
@@ -489,7 +489,7 @@ export default function Quiz({ onOpenChat }) {
                         <div className="text-xs text-gray-600 dark:text-white/60 mb-1">
                           Sua resposta: {answers[q.id] !== undefined ? String.fromCharCode(65 + answers[q.id]) : '—'} · Gabarito: {String.fromCharCode(65 + q.correct)}
                         </div>
-                         {q.explain && <p className="text-gray-700 dark:text-white/70 text-sm mt-2">{q.explain}</p>}
+                         {q.explain && <p className="text-gray-700 dark:text-white/70 text-sm mt-2"><MathText text={q.explain} /></p>}
                          {explanations[q.id] && <p className="text-sm whitespace-pre-line mt-2">{explanations[q.id]}</p>}
                 <button
                   onClick={() => onOpenChat?.(questionContext(q, answers[q.id]))}

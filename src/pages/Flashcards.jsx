@@ -2,6 +2,7 @@ import React from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { AlertTriangle, Trash2, X, Flame, Layers } from 'lucide-react'
 import { askAI } from '../lib/ai.js'
+import MathText from '../components/MathText.jsx'
 import { getAll, getDue, recordResult } from '../lib/spaced.js'
 import { getProgress, getStreak, todayCount, recordStudy } from '../lib/progress.js'
 
@@ -117,8 +118,8 @@ export default function Flashcards() {
     </div>
     {card ? <section key={card.id} className="card-in glass rounded-3xl p-8 space-y-5">
       <p className="text-xs font-semibold uppercase tracking-[0.14em] text-gray-500 dark:text-white/50">{card.topic} · {current + 1}/{visible.length}</p>
-      <h2 className="font-display text-2xl font-semibold leading-snug whitespace-pre-line">{card.front}</h2>
-      {flipped ? <p className="answer-in border-t border-line pt-5 text-gray-700 dark:text-white/80 whitespace-pre-line">{card.back}</p> : <button onClick={() => setFlipped(true)} className="btn btn-ghost">Mostrar resposta</button>}
+      <h2 className="font-display text-2xl font-semibold leading-snug whitespace-pre-line"><MathText text={card.front} /></h2>
+      {flipped ? <p className="answer-in border-t border-line pt-5 text-gray-700 dark:text-white/80 whitespace-pre-line"><MathText text={card.back} /></p> : <button onClick={() => setFlipped(true)} className="btn btn-ghost">Mostrar resposta</button>}
       <div className="flex gap-3 flex-wrap items-center">
         {flipped && <div className="answer-in flex flex-wrap gap-3" style={{ '--answer-delay': '60ms' }}><button onClick={() => rate('again')} className="btn btn-ghost text-rose-300 hover:border-rose-400/50 hover:text-rose-300">Não lembrei · 1 dia</button><button onClick={() => rate('hard')} className="btn btn-ghost">Difícil</button><button onClick={() => rate('good')} className="btn btn-primary">Bom</button><button onClick={() => rate('easy')} className="btn bg-emerald-500 text-white hover:bg-emerald-400">Fácil</button></div>}
         <button onClick={() => { setCurrent((n) => (n + 1) % visible.length); setFlipped(false) }} className="btn btn-ghost">Próximo</button>

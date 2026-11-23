@@ -1,11 +1,12 @@
 import React from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, Send, Sparkles, Bot, User } from 'lucide-react'
+import MathText from './MathText.jsx'
 
 const SYSTEM_PROMPT = `Você é um tutor de estudos amigável, didático e paciente. Responda em português do Brasil.
 Simplifique conceitos, use exemplos claros e curtos. Se o aluno errar, corrija com gentileza.
 Mantenha respostas concisas (até ~120 palavras) e focadas no aprendizado.
-Responda em texto puro: não use markdown, asteriscos, cerquilhas (#), crases ou LaTeX.`
+Responda em texto puro: não use markdown, asteriscos, cerquilhas (#), crases ou LaTeX fora de fórmulas.
+Para fórmulas matemáticas, use LaTeX entre $...$ (ex.: $e^{ix}=\\cos x+i\\sin x$).`
 
 export default function ChatAI({ open, onClose, context }) {
   const [messages, setMessages] = React.useState([
@@ -133,7 +134,7 @@ export default function ChatAI({ open, onClose, context }) {
                           : 'glass rounded-bl-sm'
                       }`}
                     >
-                      {m.text}
+                      <MathText text={m.text} />
                     </div>
                     {m.role === 'user' && (
                       <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center shrink-0">
