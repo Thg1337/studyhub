@@ -89,7 +89,7 @@ export default function Quiz({ onOpenChat }) {
       const text = await askAI([
         { role: 'system', content: 'Você é tutor do ENEM. Explique em português por que a alternativa escolhida está errada e por que o gabarito está certo, com um exemplo breve. Não altere o gabarito informado. Responda em texto puro, sem markdown, asteriscos, cerquilhas (#), crases ou LaTeX.' },
         { role: 'user', content: questionContext(item, selected) }
-      ])
+      ], { max_tokens: 450 })
       setExplanations((prev) => ({ ...prev, [item.id]: text }))
     } catch (e) {
       setExplanations((prev) => ({ ...prev, [item.id]: `Não foi possível consultar a IA: ${e.message}` }))
@@ -112,7 +112,7 @@ export default function Quiz({ onOpenChat }) {
         {
           role: 'system',
           content:
-            'Você é um gerador de questões de múltipla escolha no estilo ENEM. Responda APENAS com um array JSON válido, sem texto extra, sem markdown. Cada item: {"q":"enunciado","opts":["A","B","C","D","E"],"correct":0,"explain":"explicação curta"}. Gere questões claras, com 5 alternativas, nível ENEM.'
+            'Você é um gerador de questões de múltipla escolha no estilo ENEM. Responda APENAS com um array JSON válido, sem texto extra, sem markdown. Cada item: {"q":"enunciado","opts":["A","B","C","D","E"],"correct":0,"explain":"explicação curta"}. Gere questões claras, com 5 alternativas e explicações breves, nível ENEM.'
         },
         {
           role: 'user',
@@ -120,7 +120,7 @@ export default function Quiz({ onOpenChat }) {
         }
       ]
 
-      const text = await askAI(messages, { temperature: 0.8, max_tokens: 3000 })
+      const text = await askAI(messages, { temperature: 0.8, max_tokens: Math.min(3000, 1200 + count * 160) })
       const qs = parseQuestions(text)
       if (qs.length === 0) throw new Error('A IA não retornou questões válidas. Tente novamente.')
       toast('Questões geradas com sucesso!', 'success')
@@ -150,7 +150,6 @@ export default function Quiz({ onOpenChat }) {
       recordResult({ id: q.reviewId || `quiz-${sessionId}-${q.id}`, topic: q.topic || topic, subject: q.subject || discipline, q: q.q, opts: q.opts, correct: q.correct, explain: q.explain, source: 'quiz' }, idx === q.correct)
       recordAnswer({ subject: q.subject || discipline, correct: idx === q.correct, source: 'prática', durationMs: Date.now() - questionStartedAt })
       setProgress(recordStudy())
-      if (idx !== q.correct) explainError(q, idx)
     }
   }
 

@@ -99,7 +99,7 @@ export default function Simulados({ onOpenChat }) {
       const text = await askAI([
         { role: 'system', content: 'Tutor ENEM: explique por que a resposta escolhida está errada e por que o gabarito informado está certo. Se faltar informação no enunciado ou imagem, informe a limitação. Não altere o gabarito fornecido.' },
         { role: 'user', content: `Enunciado: ${item.q}\nAlternativas: ${item.opts.map((o, i) => `${String.fromCharCode(65 + i)}) ${o}`).join(' | ')}\nResposta do aluno: ${selected === undefined ? 'em branco' : `${String.fromCharCode(65 + selected)}) ${item.opts[selected]}`}\nGabarito: ${String.fromCharCode(65 + item.correctIndex)}) ${item.opts[item.correctIndex]}` }
-      ])
+      ], { max_tokens: 450 })
       setExplanations((prev) => ({ ...prev, [item.id]: text }))
     } catch (e) { setExplanations((prev) => ({ ...prev, [item.id]: `IA indisponível: ${e.message}` })) }
     finally { setExplaining((prev) => ({ ...prev, [item.id]: false })) }

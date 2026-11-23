@@ -36,12 +36,16 @@ export default function ChatAI({ open, onClose, context }) {
       const systemContent = context
         ? `${SYSTEM_PROMPT}\n\nContexto atual (questão/assunto que o aluno está estudando):\n${context}`
         : SYSTEM_PROMPT
-      const apiMessages = nextMessages.map((m) => ({ role: m.role, content: m.text }))
+      // O cumprimento inicial e erros locais não ajudam a responder à pergunta.
+      const apiMessages = nextMessages.slice(1)
+        .filter((m) => m.role === 'user' || (m.role === 'assistant' && !m.text.startsWith('⚠️')))
+        .slice(-8)
+        .map((m) => ({ role: m.role, content: m.text }))
 
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: apiMessages, system: systemContent, temperature: 0.7, max_tokens: 1024 })
+        body: JSON.stringify({ messages: apiMessages, system: systemContent, temperature: 0.7, max_tokens: 700 })
       })
 
       if (!res.ok) {

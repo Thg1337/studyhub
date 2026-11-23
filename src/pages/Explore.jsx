@@ -53,7 +53,7 @@ export default function Explore() {
       { role: 'system', content: 'Você é um tutor de estudos. Explique o assunto solicitado de forma clara, didática e em português do Brasil. Use tópicos e exemplos curtos. Até ~200 palavras. Responda em texto puro, sem markdown, asteriscos, cerquilhas (#), crases ou LaTeX.' },
       { role: 'user', content: `Explique o assunto: ${t}` }
     ]
-    return askAI(messages)
+    return askAI(messages, { max_tokens: 550 })
   }
 
   const fetchVideos = async (t) => {
@@ -92,7 +92,7 @@ export default function Explore() {
         { role: 'system', content: `Você é um tutor em português do Brasil. ${instruction} Responda em texto puro, sem entidades HTML (como &nbsp;).` },
         { role: 'user', content: `Assunto: ${t}` }
       ]
-      setSummary(await askAI(messages, { temperature: 0.5, max_tokens: 1200 }))
+      setSummary(await askAI(messages, { temperature: 0.5, max_tokens: 900 }))
     } catch (e) {
       toast(e.message || 'Erro ao gerar resumo.', 'error')
     } finally {
