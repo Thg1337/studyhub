@@ -21,13 +21,13 @@ export function toggleFavorite(item) {
   } else {
     favs.unshift(item)
   }
-  localStorage.setItem(KEY, JSON.stringify(favs.slice(0, 100)))
+  try { localStorage.setItem(KEY, JSON.stringify(favs.slice(0, 100))) } catch { /* favoritos locais indisponíveis */ }
   return idx < 0
 }
 
 export function removeFavorite(id) {
   const favs = getFavorites().filter((f) => f.id !== id)
-  localStorage.setItem(KEY, JSON.stringify(favs))
+  try { localStorage.setItem(KEY, JSON.stringify(favs)) } catch { /* favoritos locais indisponíveis */ }
 }
 
 export function updateFavoriteAnswer(id, answer) {

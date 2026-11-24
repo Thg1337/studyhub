@@ -34,7 +34,11 @@ export default function Flashcards() {
 
   const save = (next) => {
     setCards(next)
-    localStorage.setItem(KEY, JSON.stringify(next.slice(0, 200)))
+    try {
+      localStorage.setItem(KEY, JSON.stringify(next.slice(0, 200)))
+    } catch {
+      setError('Não foi possível salvar os cartões neste navegador. As alterações podem desaparecer ao fechar a página.')
+    }
   }
 
   const generate = async (event) => {

@@ -12,7 +12,7 @@ export function getProgress() {
 export function setDailyGoal(goal) {
   const progress = getProgress()
   progress.goal = Math.max(1, Math.min(200, Number(goal) || 10))
-  localStorage.setItem(KEY, JSON.stringify(progress))
+  try { localStorage.setItem(KEY, JSON.stringify(progress)) } catch { /* progresso local indisponível */ }
   return progress
 }
 
@@ -21,7 +21,7 @@ export function recordStudy(count = 1) {
   const today = dateKey(new Date())
   progress.days[today] = (progress.days[today] || 0) + count
   progress.days = Object.fromEntries(Object.entries(progress.days).sort(([a], [b]) => a.localeCompare(b)).slice(-365))
-  localStorage.setItem(KEY, JSON.stringify(progress))
+  try { localStorage.setItem(KEY, JSON.stringify(progress)) } catch { /* progresso local indisponível */ }
   return progress
 }
 
