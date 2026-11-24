@@ -302,6 +302,7 @@ export default function Explore() {
                   <div className="relative w-full aspect-video rounded-2xl overflow-hidden bg-black/60 border border-gray-200 dark:border-white/10">
                     {playingId && /^[a-zA-Z0-9_-]{11}$/.test(playingId) ? (
                       <iframe
+                        loading="lazy"
                         src={`https://www.youtube.com/embed/${playingId}?autoplay=0&rel=0`}
                         title="YouTube player"
                         className="absolute inset-0 w-full h-full"
@@ -327,7 +328,7 @@ export default function Explore() {
                         }`}
                       >
                         <div className="relative shrink-0">
-                          {safeImageUrl(v.thumb) ? <img src={safeImageUrl(v.thumb)} alt={v.title} className="w-28 h-16 object-cover rounded-lg" /> : null}
+                          {safeImageUrl(v.thumb) ? <img src={safeImageUrl(v.thumb)} alt={v.title} loading="lazy" decoding="async" width="112" height="64" className="w-28 h-16 object-cover rounded-lg" /> : null}
                           <div className="absolute inset-0 flex items-center justify-center">
                             <Play className="w-6 h-6 text-gray-900 dark:text-white drop-shadow opacity-80 group-hover:opacity-100" />
                           </div>

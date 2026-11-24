@@ -42,7 +42,7 @@ function PreviewImage({ src, alt, onZoom }) {
   if (!url) return null
   if (failed) return <a href={url} target="_blank" rel="noopener noreferrer" className="text-sm text-neon-cyan underline">Abrir imagem original (prévia indisponível)</a>
   return <button type="button" onClick={() => onZoom(url, alt)} className="block max-w-full text-left group" aria-label={`Ampliar ${alt}`}>
-    <img src={url} alt={alt} loading="lazy" onError={() => setFailed(true)}
+    <img src={url} alt={alt} loading="lazy" decoding="async" onError={() => setFailed(true)}
       className="max-w-full max-h-80 object-contain rounded-xl border border-gray-200 bg-white p-2 transition-transform group-hover:scale-[1.01] dark:border-white/10" />
     <span className="mt-1 inline-flex items-center gap-1 text-xs text-gray-500 dark:text-white/50"><ImageIcon className="h-3 w-3" /> Toque para ampliar</span>
   </button>
