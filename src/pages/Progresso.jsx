@@ -13,6 +13,7 @@ const formatTime = (milliseconds) => {
 export default function Progresso() {
   const [progress, setProgress] = React.useState(getProgress)
   const [dashboard, setDashboard] = React.useState(getDashboard)
+  const fileInputRef = React.useRef(null)
   const toast = useToast()
   // Recarrega apenas quando a página é montada; evitar piscar ao trocar de aba.
   const max = Math.max(...dashboard.week.map((day) => day.count), 1)
@@ -57,9 +58,8 @@ export default function Progresso() {
       <p className="mt-2 text-sm text-gray-600 dark:text-white/60">Exporte ou importe progresso, favoritas e flashcards. Tudo fica neste navegador.</p>
       <div className="mt-4 flex flex-wrap gap-3">
         <button onClick={exportStudyData} className="btn btn-ghost">Exportar dados</button>
-        <label className="btn btn-ghost cursor-pointer">
-          Importar dados
-          <input type="file" accept="application/json" className="hidden" onChange={async (e) => {
+        <button type="button" className="btn btn-ghost" onClick={() => fileInputRef.current?.click()}>Importar dados</button>
+          <input ref={fileInputRef} type="file" accept="application/json" className="hidden" onChange={async (e) => {
             const file = e.target.files?.[0]
             if (!file) return
             try {
@@ -73,7 +73,6 @@ export default function Progresso() {
               e.target.value = ''
             }
           }} />
-        </label>
       </div>
     </section>
   </main>

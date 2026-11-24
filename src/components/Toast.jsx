@@ -33,7 +33,7 @@ export function ToastProvider({ children }) {
               {t.type === 'error' && <XCircle className="w-5 h-5 text-rose-400" />}
               {t.type === 'info' && <Info className="w-5 h-5 text-neon-cyan" />}
               <span className="text-sm flex-1 text-gray-900 dark:text-white">{t.message}</span>
-              <button onClick={() => remove(t.id)} className="text-gray-400 dark:text-white/40 hover:text-gray-900 dark:hover:text-white">
+              <button onClick={() => remove(t.id)} aria-label="Fechar aviso" className="inline-flex items-center justify-center text-muted hover:text-fg">
                 <X className="w-4 h-4" />
               </button>
             </motion.div>

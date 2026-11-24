@@ -169,6 +169,7 @@ html:not(.dark) .glass-strong {
   line-height: 1;
   white-space: nowrap;
   cursor: pointer;
+  min-height: 44px;
   transition:
     transform var(--duration-quick) var(--ease-smooth-out),
     background-color var(--duration-quick) var(--ease-smooth-out),
@@ -196,6 +197,9 @@ html:not(.dark) .glass-strong {
 /* ---------- navegação ---------- */
 .nav-link {
   position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
   padding: 0.5rem 0.75rem;
   border-radius: 999px;
   font-size: 0.85rem;
@@ -512,9 +516,9 @@ html:not(.dark) .hero-glow {
   transition: transform .2s var(--ease-smooth-out), opacity .2s var(--ease-smooth-out);
 }
 .skip-link:focus { opacity: 1; pointer-events: auto; transform: none; }
-/* foco de teclado discreto; campos de texto não desenham caixa ao digitar */
-:focus-visible { outline: 2px solid var(--line-strong); outline-offset: 3px; }
-input:focus-visible, textarea:focus-visible, select:focus-visible { outline: none; }
+/* Foco visível em ambos os temas, inclusive nos campos de formulário. */
+:focus-visible { outline: 3px solid var(--accent-text); outline-offset: 3px; scroll-margin-top: 7rem; }
+button { min-width: 44px; min-height: 44px; }
 button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
 
 html:not(.dark) .text-neon-cyan { color: #55670a; }
