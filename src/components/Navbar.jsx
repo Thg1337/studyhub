@@ -14,7 +14,7 @@ const links = [
   { to: '/quiz/Matemática', label: 'Prática' }
 ]
 
-export default function Navbar({ onOpenChat }) {
+export default function Navbar({ onOpenChat, onPreloadRoute }) {
   const [open, setOpen] = React.useState(false)
   const loc = useLocation()
   const { theme, toggle } = useTheme()
@@ -37,6 +37,8 @@ export default function Navbar({ onOpenChat }) {
                 to={link.to}
                 data-active={loc.pathname === link.to}
                 className="nav-link"
+                onMouseEnter={() => onPreloadRoute?.(link.to)}
+                onFocus={() => onPreloadRoute?.(link.to)}
                 aria-current={loc.pathname === link.to ? 'page' : undefined}
               >
                 {link.label}
@@ -88,6 +90,8 @@ export default function Navbar({ onOpenChat }) {
                     key={link.to}
                     to={link.to}
                     onClick={() => setOpen(false)}
+                    onMouseEnter={() => onPreloadRoute?.(link.to)}
+                    onFocus={() => onPreloadRoute?.(link.to)}
                     className="flex items-center justify-between rounded-xl px-4 py-3 text-sm text-muted transition-colors duration-150 hover:bg-surface hover:text-fg"
                   >
                     {link.label}

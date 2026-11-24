@@ -10,12 +10,32 @@ import { ToastProvider } from './components/Toast.jsx'
 import { ThemeProvider } from './components/ThemeToggle.jsx'
 
 const ChatAI = lazy(() => import('./components/ChatAI.jsx'))
-const Quiz = lazy(() => import('./pages/Quiz.jsx'))
-const Explore = lazy(() => import('./pages/Explore.jsx'))
-const Simulados = lazy(() => import('./pages/Simulados.jsx'))
-const Flashcards = lazy(() => import('./pages/Flashcards.jsx'))
-const Favoritas = lazy(() => import('./pages/Favoritas.jsx'))
-const Progresso = lazy(() => import('./pages/Progresso.jsx'))
+const loadQuiz = () => import('./pages/Quiz.jsx')
+const loadExplore = () => import('./pages/Explore.jsx')
+const loadSimulados = () => import('./pages/Simulados.jsx')
+const loadFlashcards = () => import('./pages/Flashcards.jsx')
+const loadFavoritas = () => import('./pages/Favoritas.jsx')
+const loadProgresso = () => import('./pages/Progresso.jsx')
+const Quiz = lazy(loadQuiz)
+const Explore = lazy(loadExplore)
+const Simulados = lazy(loadSimulados)
+const Flashcards = lazy(loadFlashcards)
+const Favoritas = lazy(loadFavoritas)
+const Progresso = lazy(loadProgresso)
+
+const routeLoaders = {
+  '/quiz': loadQuiz,
+  '/explore': loadExplore,
+  '/simulados': loadSimulados,
+  '/flashcards': loadFlashcards,
+  '/favoritas': loadFavoritas,
+  '/progresso': loadProgresso
+}
+
+function preloadRoute(path) {
+  const loader = Object.entries(routeLoaders).find(([prefix]) => path.startsWith(prefix))?.[1]
+  loader?.()
+}
 
 const method = [
   {
@@ -139,7 +159,7 @@ export default function App() {
       <ToastProvider>
         <div className="relative min-h-screen">
           <a href="#conteudo-principal" className="skip-link">Pular para o conteúdo principal</a>
-          <Navbar onOpenChat={() => { setChatContext(''); setChatOpen(true) }} />
+          <Navbar onOpenChat={() => { setChatContext(''); setChatOpen(true) }} onPreloadRoute={preloadRoute} />
           <span className="sr-only" role="status" aria-live="polite">{pageAnnouncement}</span>
             <div
               ref={contentRef}

@@ -83,12 +83,12 @@ export default function Favoritas({ onOpenChat }) {
   const [explanations, setExplanations] = React.useState({})
   const [loadingAI, setLoadingAI] = React.useState({})
   const [revealed, setRevealed] = React.useState({})
-  const subjects = [...new Set(favorites.map(groupName))].sort((a, b) => a.localeCompare(b, 'pt-BR'))
-  const filtered = favorites.filter((item) => (!subject || groupName(item) === subject) &&
-    `${item.q || ''} ${item.topic || ''} ${groupName(item)}`.toLocaleLowerCase('pt-BR').includes(search.toLocaleLowerCase('pt-BR')))
-  const groups = Object.groupBy
+  const subjects = React.useMemo(() => [...new Set(favorites.map(groupName))].sort((a, b) => a.localeCompare(b, 'pt-BR')), [favorites])
+  const filtered = React.useMemo(() => favorites.filter((item) => (!subject || groupName(item) === subject) &&
+    `${item.q || ''} ${item.topic || ''} ${groupName(item)}`.toLocaleLowerCase('pt-BR').includes(search.toLocaleLowerCase('pt-BR'))), [favorites, search, subject])
+  const groups = React.useMemo(() => Object.groupBy
     ? Object.groupBy(filtered, groupName)
-    : filtered.reduce((acc, item) => { (acc[groupName(item)] ||= []).push(item); return acc }, {})
+    : filtered.reduce((acc, item) => { (acc[groupName(item)] ||= []).push(item); return acc }, {}), [filtered])
 
   const remove = (id) => {
     removeFavorite(id)
