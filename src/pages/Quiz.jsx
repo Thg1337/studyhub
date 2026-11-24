@@ -6,6 +6,7 @@ import { toggleFavorite, isFavorite, updateFavoriteAnswer } from '../lib/favorit
 import { recordResult, getDue } from '../lib/spaced.js'
 import { recordStudy, recordAnswer, getProgress, getStreak, setDailyGoal, todayCount } from '../lib/progress.js'
 import { askAI } from '../lib/ai.js'
+import { validateQuestion } from '../lib/quizValidation.js'
 import AIResponse from '../components/AIResponse.jsx'
 import { safeImageUrl } from '../lib/safeUrl.js'
 import MathText from '../components/MathText.jsx'
@@ -80,7 +81,10 @@ export default function Quiz({ onOpenChat }) {
   const [progress, setProgress] = React.useState(getProgress)
   const [sessionId, setSessionId] = React.useState('')
   const [questionStartedAt, setQuestionStartedAt] = React.useState(Date.now)
-  const [draft, setDraft] = React.useState(readDraft)
+  const [draft, setDraft] = React.useState(() => {
+    const saved = readDraft()
+    return saved?.questions?.every(validateQuestion) ? saved : null
+  })
   const [, refreshFavorite] = React.useState(0)
 
   const questionContext = (item, selected) => `Questão: ${item.q}\nAlternativas: ${item.opts.map((o, i) => `${String.fromCharCode(65 + i)}) ${o}`).join(' | ')}\nResposta do aluno: ${selected === undefined ? 'não respondida' : `${String.fromCharCode(65 + selected)}) ${item.opts[selected]}`}\nGabarito: ${String.fromCharCode(65 + item.correct)}) ${item.opts[item.correct]}\nExplicação existente: ${item.explain || 'não fornecida'}`
@@ -89,7 +93,7 @@ export default function Quiz({ onOpenChat }) {
     setExplaining((prev) => ({ ...prev, [item.id]: true }))
     try {
       const text = await askAI([
-        { role: 'system', content: 'Você é tutor do ENEM. Explique em português por que a alternativa escolhida está errada e por que o gabarito está certo, com um exemplo breve. Não altere o gabarito informado. Organize em passos curtos com Markdown simples. Coloque fórmulas entre $...$ ou $$...$$ e confira as contas.' },
+        { role: 'system', content: 'Você é tutor do ENEM. Resolva a questão independentemente antes de explicar. Se o gabarito informado estiver errado ou faltarem dados, diga isso claramente; não invente uma justificativa. Use passos curtos, sem tabelas. Coloque fórmulas entre $...$ ou $$...$$ e confira as contas.' },
         { role: 'user', content: questionContext(item, selected) }
       ], { max_tokens: 800 })
       setExplanations((prev) => ({ ...prev, [item.id]: text }))
@@ -114,7 +118,7 @@ export default function Quiz({ onOpenChat }) {
         {
           role: 'system',
           content:
-            'Você é um gerador de questões de múltipla escolha no estilo ENEM. Responda APENAS com um array JSON válido, sem texto extra, sem markdown. Cada item: {"q":"enunciado","opts":["A","B","C","D","E"],"correct":0,"explain":"explicação curta"}. Gere questões claras, com 5 alternativas e explicações breves, nível ENEM.'
+            'Você é um gerador de questões de múltipla escolha no estilo ENEM. Responda APENAS com um array JSON válido, sem texto extra, sem markdown. Cada item: {"q":"enunciado","opts":["A","B","C","D","E"],"correct":0,"explain":"explicação curta"}. Gere questões completas, com todos os dados necessários no enunciado, 5 alternativas distintas e uma única resposta correta. Resolva cada conta antes de definir o gabarito. Use fórmulas entre $...$ e não use tabelas.'
         },
         {
           role: 'user',
@@ -123,8 +127,17 @@ export default function Quiz({ onOpenChat }) {
       ]
 
       const text = await askAI(messages, { temperature: 0.8, max_tokens: Math.min(3000, 1200 + count * 160), format: 'json' })
-      const qs = parseQuestions(text)
-      if (qs.length === 0) throw new Error('A IA não retornou questões válidas. Tente novamente.')
+      const candidates = parseQuestions(text).filter(validateQuestion)
+      if (candidates.length === 0) throw new Error('A IA não retornou questões confiáveis. Tente novamente.')
+      setLoadingMsg('Conferindo gabaritos e enunciados...')
+      const audit = await askAI([
+        { role: 'system', content: 'Você é revisor independente de questões. Resolva cada uma sem confiar no gabarito nem na explicação. Retorne APENAS um array JSON com os índices (base zero) das questões que possuem todos os dados necessários, uma única resposta correta e gabarito e explicação matematicamente coerentes. Na dúvida, exclua a questão.' },
+        { role: 'user', content: JSON.stringify(candidates.map(({ q, opts, correct, explain }) => ({ q, opts, correct, explain }))) }
+      ], { temperature: 0, max_tokens: 500, format: 'json' })
+      const approved = JSON.parse(audit.replace(/^```json\s*|^```\s*|```\s*$/gi, '').trim())
+      if (!Array.isArray(approved) || !approved.every((index) => Number.isInteger(index) && index >= 0 && index < candidates.length)) throw new Error('Não foi possível conferir as questões. Tente novamente.')
+      const qs = [...new Set(approved)].map((index) => candidates[index]).filter(validateQuestion)
+      if (qs.length === 0) throw new Error('A IA não retornou questões confiáveis. Tente novamente.')
       toast('Questões geradas com sucesso!', 'success')
       setQuestions(qs)
       setSessionId(crypto.randomUUID())
@@ -175,7 +188,7 @@ export default function Quiz({ onOpenChat }) {
 
   const q = questions[current]
   const streak = mode === 'config' ? getStreak(progress) : 0
-  const dueQuestionCount = mode === 'config' ? getDue().filter((item) => Array.isArray(item.opts)).length : 0
+  const dueQuestionCount = mode === 'config' ? getDue().filter((item) => Array.isArray(item.opts) && validateQuestion(item)).length : 0
   React.useEffect(() => { setQuestionStartedAt(Date.now()) }, [current, mode])
   React.useEffect(() => {
     if (mode !== 'quiz' || !questions.length) return
@@ -273,7 +286,7 @@ export default function Quiz({ onOpenChat }) {
                 </div>
                 <button
                   onClick={() => {
-                    const due = getDue().filter((item) => Array.isArray(item.opts))
+                    const due = getDue().filter((item) => Array.isArray(item.opts) && validateQuestion(item))
                     const qs = due.map((d, i) => ({
                       id: i + 1,
                       reviewId: d.id,
@@ -414,7 +427,7 @@ export default function Quiz({ onOpenChat }) {
                       {answers[q.id] === q.correct ? 'Correto!' : 'Resposta incorreta'}
                     </span>
                   </div>
-                  {q.explain && <p className="text-gray-700 dark:text-white/80 text-sm"><MathText text={q.explain} /></p>}
+                  {q.explain && <AIResponse text={q.explain} />}
                    {answers[q.id] !== q.correct && (
                     <p className="text-gray-600 dark:text-white/70 text-sm mt-2">
                       Gabarito: <span className="font-bold text-neon-cyan">{String.fromCharCode(65 + q.correct)}</span>
@@ -493,7 +506,7 @@ export default function Quiz({ onOpenChat }) {
                         <div className="text-xs text-gray-600 dark:text-white/60 mb-1">
                           Sua resposta: {answers[q.id] !== undefined ? String.fromCharCode(65 + answers[q.id]) : '—'} · Gabarito: {String.fromCharCode(65 + q.correct)}
                         </div>
-                         {q.explain && <p className="text-gray-700 dark:text-white/70 text-sm mt-2"><MathText text={q.explain} /></p>}
+                         {q.explain && <AIResponse text={q.explain} className="mt-2" />}
                          {explanations[q.id] && <AIResponse text={explanations[q.id]} className="mt-3" />}
                 <button
                   onClick={() => onOpenChat?.(questionContext(q, answers[q.id]))}

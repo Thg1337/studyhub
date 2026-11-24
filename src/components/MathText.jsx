@@ -13,7 +13,7 @@ function renderMath(tex, displayMode) {
 // Divide o texto em segmentos de texto puro e fórmulas LaTeX delimitadas por $...$ ou $$...$$.
 export default function MathText({ text, className = '' }) {
   const segments = React.useMemo(() => {
-    const src = String(text || '')
+    const src = String(text || '').replace(/(^|\n)(?!\s*\$)([^\n]*\\(?:frac|times|cdot)[^\n]*)(?=\n|$)/g, (_match, prefix, formula) => `${prefix}$${formula.trim()}$`)
     const result = []
     // Primeiro, captura blocos $$...$$
     const blockRegex = /\$\$([\s\S]+?)\$\$/g
