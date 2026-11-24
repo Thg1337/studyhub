@@ -6,6 +6,7 @@ import Skeleton from '../components/Skeleton.jsx'
 import { useToast } from '../components/Toast.jsx'
 import { askAI } from '../lib/ai.js'
 import AIResponse from '../components/AIResponse.jsx'
+import { safeImageUrl } from '../lib/safeUrl.js'
 
 const ENTITY_MAP = {
   nbsp: '\u00A0',
