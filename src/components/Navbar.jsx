@@ -18,6 +18,9 @@ export default function Navbar({ onOpenChat, onPreloadRoute }) {
   const [open, setOpen] = React.useState(false)
   const loc = useLocation()
   const { theme, toggle } = useTheme()
+  const isActive = (to) => to === '/quiz/Matemática'
+    ? loc.pathname.startsWith('/quiz/')
+    : loc.pathname === to
 
   return (
     <header className="fixed inset-x-0 top-0 z-50">
@@ -35,11 +38,11 @@ export default function Navbar({ onOpenChat, onPreloadRoute }) {
               <Link
                 key={link.to}
                 to={link.to}
-                data-active={loc.pathname === link.to}
+                data-active={isActive(link.to)}
                 className="nav-link"
                 onMouseEnter={() => onPreloadRoute?.(link.to)}
                 onFocus={() => onPreloadRoute?.(link.to)}
-                aria-current={loc.pathname === link.to ? 'page' : undefined}
+                aria-current={isActive(link.to) ? 'page' : undefined}
               >
                 {link.label}
               </Link>
