@@ -1,4 +1,4 @@
-import React, { useState, lazy, Suspense } from 'react'
+import React, { useEffect, useRef, useState, lazy, Suspense } from 'react'
 import { MotionConfig } from 'framer-motion'
 import { Routes, Route, Link, useLocation } from 'react-router-dom'
 import { ArrowRight } from 'lucide-react'
@@ -104,6 +104,33 @@ export default function App() {
   const [chatOpen, setChatOpen] = useState(false)
   const [chatContext, setChatContext] = useState('')
   const location = useLocation()
+  const contentRef = useRef(null)
+  const previousPath = useRef(location.pathname)
+  const [pageAnnouncement, setPageAnnouncement] = useState('')
+
+  useEffect(() => {
+    if (previousPath.current === location.pathname) return
+    previousPath.current = location.pathname
+
+    const content = contentRef.current
+    const focusTitle = () => {
+      const title = content?.querySelector('h1')
+      if (!title) return false
+      title.tabIndex = -1
+      title.focus()
+      const name = title.textContent.trim()
+      document.title = `${name} | StudyHub`
+      setPageAnnouncement(`Página: ${name}`)
+      return true
+    }
+
+    if (focusTitle()) return
+    const observer = new MutationObserver(() => {
+      if (focusTitle()) observer.disconnect()
+    })
+    observer.observe(content, { childList: true, subtree: true })
+    return () => observer.disconnect()
+  }, [location.pathname])
 
   return (
     <MotionConfig reducedMotion="never">
@@ -112,12 +139,15 @@ export default function App() {
         <div className="relative min-h-screen">
           <a href="#conteudo-principal" className="skip-link">Pular para o conteúdo principal</a>
           <Navbar onOpenChat={() => { setChatContext(''); setChatOpen(true) }} />
+          <span className="sr-only" role="status" aria-live="polite">{pageAnnouncement}</span>
             <div
+              ref={contentRef}
               key={location.pathname}
               id="conteudo-principal"
               tabIndex="-1"
               className={location.pathname === '/' ? undefined : 'page-enter'}
             >
+              <Suspense fallback={<main className="px-6 pt-28" role="status">Carregando página…</main>}>
               <Routes location={location}>
                 <Route
                   path="/"
@@ -137,6 +167,7 @@ export default function App() {
                 <Route path="/favoritas" element={<Favoritas onOpenChat={(ctx) => { setChatContext(ctx); setChatOpen(true) }} />} />
                 <Route path="/progresso" element={<Progresso />} />
               </Routes>
+              </Suspense>
             </div>
           <Footer />
           <ChatAI open={chatOpen} onClose={() => setChatOpen(false)} context={chatContext} />

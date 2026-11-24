@@ -65,7 +65,8 @@ export default function Progresso() {
             try {
               await importStudyData(file)
               setProgress(getProgress())
-              toast('Dados importados. Recarregue a página para atualizar tudo.', 'success')
+              setDashboard(getDashboard())
+              toast('Dados importados. Painel atualizado.', 'success')
             } catch (err) {
               toast(err.message || 'Erro ao importar.', 'error')
             } finally {
