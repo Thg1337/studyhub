@@ -1,6 +1,13 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { askAI, cleanAIResponse } from '../src/lib/ai.js'
+import { serviceHttpError, serviceNetworkError } from '../src/lib/serviceErrors.js'
+
+test('distingue limite, rede e indisponibilidade dos vídeos', () => {
+  assert.match(serviceHttpError('vídeos', 429).message, /Limite de uso/)
+  assert.match(serviceHttpError('vídeos', 503).message, /temporariamente indisponível/)
+  assert.match(serviceNetworkError('vídeos').message, /Confira sua internet/)
+})
 
 test('preserva Markdown e transforma delimitadores de fórmulas em notação renderizável', () => {
   const result = cleanAIResponse('**Fórmula de Euler**\n\\[ V-E+F=2 \\]\n\\;\\;\\;')
@@ -30,6 +37,18 @@ test('rejeita uma resposta cortada no limite máximo', async () => {
   globalThis.fetch = async () => ({ ok: true, json: async () => ({ choices: [{ finish_reason: 'length', message: { content: 'Resposta cortada' } }] }) })
   try {
     await assert.rejects(askAI([{ role: 'user', content: 'Explique Euler' }], { max_tokens: 3000 }), /interrompida/)
+  } finally {
+    globalThis.fetch = originalFetch
+  }
+})
+
+test('explica o limite de IA sem repetir a requisição', async () => {
+  const originalFetch = globalThis.fetch
+  let calls = 0
+  globalThis.fetch = async () => { calls++; return { ok: false, status: 429 } }
+  try {
+    await assert.rejects(askAI([{ role: 'user', content: 'Teste' }]), /Limite de uso da IA/)
+    assert.equal(calls, 1)
   } finally {
     globalThis.fetch = originalFetch
   }

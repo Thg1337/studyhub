@@ -7,6 +7,7 @@ import { useToast } from '../components/Toast.jsx'
 import { askAI } from '../lib/ai.js'
 import AIResponse from '../components/AIResponse.jsx'
 import { safeImageUrl } from '../lib/safeUrl.js'
+import { serviceHttpError, serviceNetworkError } from '../lib/serviceErrors.js'
 
 const ENTITY_MAP = {
   nbsp: '\u00A0',
@@ -44,6 +45,7 @@ export default function Explore() {
   const [videos, setVideos] = React.useState([])
   const [loadingVideos, setLoadingVideos] = React.useState(false)
   const [error, setError] = React.useState('')
+  const [videoError, setVideoError] = React.useState('')
   const [playingId, setPlayingId] = React.useState(null)
   const [summary, setSummary] = React.useState('')
   const [loadingSummary, setLoadingSummary] = React.useState(false)
@@ -59,11 +61,11 @@ export default function Explore() {
 
   const fetchVideos = async (t) => {
     const res = await fetch(`/api/youtube?q=${encodeURIComponent(t + ' aula')}&maxResults=6`)
+      .catch(() => { throw serviceNetworkError('vídeos') })
     if (!res.ok) {
-      const data = await res.json().catch(() => ({}))
-      throw new Error(data.error || `YouTube indisponível (${res.status})`)
+      throw serviceHttpError('vídeos', res.status)
     }
-    const data = await res.json()
+    const data = await res.json().catch(() => { throw serviceHttpError('vídeos', 503) })
     return (data.items || []).map((it) => ({
       id: it.id.videoId,
       title: it.snippet.title,
@@ -108,6 +110,7 @@ export default function Explore() {
     setActiveTopic(t)
     setAiText('')
     setVideos([])
+    setVideoError('')
     setError('')
     setPlayingId(null)
     setLoadingAI(true)
@@ -115,12 +118,12 @@ export default function Explore() {
     try {
       const [text, vids] = await Promise.allSettled([fetchAI(t), fetchVideos(t)])
       if (text.status === 'fulfilled') setAiText(text.value)
-      else setError((prev) => prev + `IA: ${text.reason?.message || 'erro'}\n`)
+      else setError(text.reason?.message || 'Não foi possível consultar a IA.')
       if (vids.status === 'fulfilled') {
         setVideos(vids.value)
         if (vids.value.length > 0) setPlayingId(vids.value[0].id)
       }
-      else setError((prev) => prev + `YouTube: ${vids.reason?.message || 'erro'}\n`)
+      else setVideoError(vids.reason?.message || 'Não foi possível buscar vídeos.')
     } finally {
       setLoadingAI(false)
       setLoadingVideos(false)
@@ -128,8 +131,12 @@ export default function Explore() {
   }
 
   // Auto-busca quando topic vem pela URL (ex: cards da home)
+  const autoSearchRef = React.useRef('')
   React.useEffect(() => {
     const t = searchParams.get('topic')
+    if (!t) { autoSearchRef.current = ''; return }
+    if (autoSearchRef.current === t) return
+    autoSearchRef.current = t
     if (t) {
       setTopic(t)
       // dispara busca
@@ -139,6 +146,7 @@ export default function Explore() {
         setActiveTopic(t)
         setAiText('')
         setVideos([])
+        setVideoError('')
         setError('')
         setPlayingId(null)
         setLoadingAI(true)
@@ -146,11 +154,11 @@ export default function Explore() {
         try {
           const [text, vids] = await Promise.allSettled([fetchAI(t), fetchVideos(t)])
           if (text.status === 'fulfilled') setAiText(text.value)
-          else setError((prev) => prev + `IA: ${text.reason?.message || 'erro'}\n`)
+          else setError(text.reason?.message || 'Não foi possível consultar a IA.')
           if (vids.status === 'fulfilled') {
             setVideos(vids.value)
             if (vids.value.length > 0) setPlayingId(vids.value[0].id)
-          } else { setError((prev) => prev + `YouTube: ${vids.reason?.message || 'erro'}\n`); toast(vids.reason?.message || 'Erro ao buscar vídeos', 'error') }
+          } else setVideoError(vids.reason?.message || 'Não foi possível buscar vídeos.')
         } finally {
           setLoadingAI(false)
           setLoadingVideos(false)
@@ -232,7 +240,7 @@ export default function Explore() {
       )}
 
       {error && (
-        <div key={error} className="shake glass rounded-2xl p-4 mb-8 border border-rose-400/40 text-rose-300 text-sm whitespace-pre-line">
+        <div key={error} role="alert" className="shake glass rounded-2xl p-4 mb-8 border border-rose-400/40 text-rose-300 text-sm whitespace-pre-line">
           {error}
         </div>
       )}
@@ -284,6 +292,8 @@ export default function Explore() {
                     </div>
                   ))}
                 </div>
+              ) : videoError ? (
+                <p role="alert" className="text-sm text-rose-400">{videoError}</p>
               ) : videos.length === 0 ? (
                 <p className="text-gray-500 dark:text-white/50 text-sm">Nenhum vídeo encontrado.</p>
               ) : (

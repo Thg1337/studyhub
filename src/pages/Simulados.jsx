@@ -174,7 +174,8 @@ export default function Simulados({ onOpenChat }) {
               }
               break
             }
-            if (!res || !res.ok) throw new Error(`Erro ${res?.status} ao buscar questões (${y})`)
+            if (res?.status === 429) throw new Error('O banco de questões atingiu o limite de consultas. Aguarde alguns minutos e tente novamente.')
+            if (!res || !res.ok) throw new Error(`Não foi possível buscar as questões de ${y}. Tente novamente mais tarde.`)
             const data = await res.json()
             cached = cached.concat(data.questions || [])
             if (!data.metadata?.hasMore) break
@@ -254,7 +255,7 @@ export default function Simulados({ onOpenChat }) {
       setExamStartedAt(Date.now())
       setMode('exam')
     } catch (e) {
-      setError(e.message || 'Erro ao carregar a prova.')
+      setError(e instanceof TypeError ? 'Falha de conexão ao buscar questões. Confira sua internet e tente novamente.' : e.message || 'Erro ao carregar a prova.')
       setMode('config')
     }
   }

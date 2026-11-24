@@ -1,3 +1,5 @@
+import { serviceHttpError, serviceNetworkError } from './serviceErrors.js'
+
 export function cleanAIResponse(text) {
   if (!text) return text
   return String(text)
@@ -32,12 +34,11 @@ export async function askAI(messages, options = {}) {
         temperature: options.temperature ?? 0.7,
         model: options.model
       })
-    })
+    }).catch(() => { throw serviceNetworkError('IA') })
     if (!response.ok) {
-      const data = await response.json().catch(() => ({}))
-      throw new Error(data.error || `IA indisponível (${response.status})`)
+      throw serviceHttpError('IA', response.status)
     }
-    const data = await response.json()
+    const data = await response.json().catch(() => { throw serviceHttpError('IA', 503) })
     const choice = data?.choices?.[0]
     if (choice?.finish_reason === 'length') {
       const error = new Error('A resposta foi interrompida antes de terminar. Tente novamente.')
@@ -53,8 +54,7 @@ export async function askAI(messages, options = {}) {
     try {
       return await doFetch(maxTokens)
     } catch (err) {
-      const msg = String(err?.message || '')
-      const transient = /indisponível \((5\d\d|429)\)|network|fetch/i.test(msg)
+      const transient = /temporariamente indisponível|Falha de conexão/.test(String(err?.message || ''))
       if (!transient) throw err
       await new Promise((resolve) => setTimeout(resolve, 800))
       return doFetch(maxTokens)
