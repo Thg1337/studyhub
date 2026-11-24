@@ -9,6 +9,7 @@ import { askAI } from '../lib/ai.js'
 import AIResponse from '../components/AIResponse.jsx'
 import { safeImageUrl } from '../lib/safeUrl.js'
 import MathText from '../components/MathText.jsx'
+import { useToast } from '../components/Toast.jsx'
 
 const DRAFT_KEY = 'studyhub_quiz_draft'
 const MODE_MOTION = {
