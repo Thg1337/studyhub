@@ -174,6 +174,8 @@ export default function Quiz({ onOpenChat }) {
   }
 
   const q = questions[current]
+  const streak = mode === 'config' ? getStreak(progress) : 0
+  const dueQuestionCount = mode === 'config' ? getDue().filter((item) => Array.isArray(item.opts)).length : 0
   React.useEffect(() => { setQuestionStartedAt(Date.now()) }, [current, mode])
   React.useEffect(() => {
     if (mode !== 'quiz' || !questions.length) return
@@ -259,15 +261,15 @@ export default function Quiz({ onOpenChat }) {
             </div>
 
             <div className="glass rounded-2xl p-4 space-y-2">
-              <div className="font-semibold">Meta diária · {todayCount(progress)}/{progress.goal} questões · 🔥 {getStreak(progress)} dia(s)</div>
+              <div className="font-semibold">Meta diária · {todayCount(progress)}/{progress.goal} {progress.goal === 1 ? 'questão' : 'questões'} · 🔥 {streak} {streak === 1 ? 'dia' : 'dias'}</div>
               <label className="text-sm">Questões por dia: <input aria-label="Meta diária" type="number" min="1" max="200" value={progress.goal} onChange={(e) => setProgress(setDailyGoal(e.target.value))} className="w-20 ml-2 glass rounded-lg px-2 py-1 bg-transparent" /></label>
               <div className="h-2 rounded-full bg-white/10"><div className="bar-smooth h-full rounded-full bg-neon-cyan" style={{ width: `${Math.min(100, todayCount(progress) / progress.goal * 100)}%` }} /></div>
               <p className="text-xs text-gray-500 dark:text-white/60">Progresso salvo neste navegador.</p>
             </div>
-            {getDue().filter((item) => Array.isArray(item.opts)).length > 0 && (
+            {dueQuestionCount > 0 && (
               <div className="glass rounded-2xl p-4">
                 <div className="text-sm font-medium mb-2 text-gray-900 dark:text-white">
-                  📚 Revisão espaçada: {getDue().filter((item) => Array.isArray(item.opts)).length} questão(ões) pendente(s)
+                  📚 Revisão espaçada: {dueQuestionCount} {dueQuestionCount === 1 ? 'questão pendente' : 'questões pendentes'}
                 </div>
                 <button
                   onClick={() => {
@@ -345,7 +347,7 @@ export default function Quiz({ onOpenChat }) {
                 >
                   <Star className="w-4 h-4" fill={isFavorite(q.reviewId || `quiz-${sessionId}-${q.id}`) ? 'currentColor' : 'none'} />
                 </button>
-                <div className="text-xs text-gray-500 dark:text-white/50">{Object.keys(revealed).length} respondidas</div>
+                <div className="text-xs text-gray-500 dark:text-white/50">{Object.keys(revealed).length} {Object.keys(revealed).length === 1 ? 'respondida' : 'respondidas'}</div>
               </div>
             </div>
             <div className="h-2 rounded-full bg-white/10 overflow-hidden mb-6">

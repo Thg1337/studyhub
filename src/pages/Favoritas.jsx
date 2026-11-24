@@ -133,7 +133,7 @@ export default function Favoritas({ onOpenChat }) {
         <Star className="h-3 w-3 text-neon-cyan" /> Sua coleção
       </div>
       <h1 className="font-display text-4xl font-bold tracking-tight md:text-5xl">Questões <span className="text-gradient">favoritas</span></h1>
-      <p className="mt-3 text-gray-600 dark:text-white/60">{favorites.length} questão(ões) salvas neste navegador. Abra as imagens para vê-las em tamanho maior.</p>
+      <p className="mt-3 text-gray-600 dark:text-white/60">{favorites.length} {favorites.length === 1 ? 'questão salva' : 'questões salvas'} neste navegador.{favorites.length > 0 && ' Abra as imagens para vê-las em tamanho maior.'}</p>
     </div>
 
     {favorites.length > 0 ? <>

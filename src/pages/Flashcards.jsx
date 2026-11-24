@@ -31,6 +31,8 @@ export default function Flashcards() {
   const dueIds = new Set([...getDue().map((item) => item.id), ...cards.filter((item) => !scheduledIds.has(item.id)).map((item) => item.id)])
   const visible = onlyDue ? cards.filter((card) => dueIds.has(card.id)) : cards
   const card = visible[Math.min(current, visible.length - 1)]
+  const streak = getStreak(progress)
+  const dueCardCount = cards.filter((item) => dueIds.has(item.id)).length
 
   const save = (next) => {
     setCards(next)
@@ -114,9 +116,9 @@ export default function Flashcards() {
     {error && <p key={error} role="alert" className="shake text-rose-400">{error}</p>}
     <div className="glass rounded-2xl p-5 flex flex-wrap gap-4 items-center justify-between">
       <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-gray-600 dark:text-white/70">
-        <span className="inline-flex items-center gap-1.5"><Flame className="h-4 w-4 text-neon-cyan" /> {getStreak(progress)} dia(s)</span>
+        <span className="inline-flex items-center gap-1.5"><Flame className="h-4 w-4 text-neon-cyan" /> {streak} {streak === 1 ? 'dia' : 'dias'}</span>
         <span>Meta {todayCount(progress)}/{progress.goal}</span>
-        <span>{cards.filter((c) => dueIds.has(c.id)).length} para revisar</span>
+        <span>{dueCardCount} {dueCardCount === 1 ? 'cartão para revisar' : 'cartões para revisar'}</span>
       </div>
       <button onClick={() => { setOnlyDue(!onlyDue); setCurrent(0); setFlipped(false) }} className="btn btn-ghost !px-4 !py-2 text-sm">{onlyDue ? 'Ver todos' : 'Revisar pendentes'}</button>
     </div>

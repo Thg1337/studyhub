@@ -25,10 +25,10 @@ export default function Progresso() {
     </div>
     <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
       {[
-        { icon: Target, label: 'Questões respondidas', value: dashboard.total, detail: `${dashboard.correct} acertos` },
+        { icon: Target, label: 'Questões respondidas', value: dashboard.total, detail: `${dashboard.correct} ${dashboard.correct === 1 ? 'acerto' : 'acertos'}` },
         { icon: TrendingUp, label: 'Taxa de acerto', value: `${dashboard.rate}%`, detail: 'em todas as matérias' },
         { icon: Clock3, label: 'Tempo registrado', value: formatTime(dashboard.durationMs), detail: 'durante questões respondidas' },
-        { icon: Flame, label: 'Sequência atual', value: `${getStreak(progress)} dia${getStreak(progress) === 1 ? '' : 's'}`, detail: 'dias com estudo registrado' }
+        { icon: Flame, label: 'Sequência atual', value: `${getStreak(progress)} dia${getStreak(progress) === 1 ? '' : 's'}`, detail: 'com estudo registrado' }
       ].map(({ icon: Icon, label, value, detail }) => <article key={label} className="glass rounded-2xl p-5">
         <Icon className="mb-4 h-5 w-5 text-neon-cyan" />
         <p className="text-sm text-gray-600 dark:text-white/60">{label}</p>
@@ -38,13 +38,13 @@ export default function Progresso() {
     </section>
     <section className="mt-6 grid gap-6 lg:grid-cols-2">
       <article data-reveal className="glass rounded-3xl p-6">
-        <div className="flex items-center justify-between gap-4"><div><h2 className="font-display text-xl font-bold">Meta diária</h2><p className="mt-1 text-sm text-gray-600 dark:text-white/60">{todayCount(progress)} de {progress.goal} questões hoje</p></div><label className="text-sm">Meta <input aria-label="Meta diária de questões" type="number" min="1" max="200" value={progress.goal} onChange={(event) => setProgress(setDailyGoal(event.target.value))} className="ml-2 w-16 rounded-lg border border-gray-300 bg-transparent px-2 py-1 dark:border-white/20" /></label></div>
+        <div className="flex items-center justify-between gap-4"><div><h2 className="font-display text-xl font-bold">Meta diária</h2><p className="mt-1 text-sm text-gray-600 dark:text-white/60">{todayCount(progress)} de {progress.goal} {progress.goal === 1 ? 'questão' : 'questões'} hoje</p></div><label className="text-sm">Meta <input aria-label="Meta diária de questões" type="number" min="1" max="200" value={progress.goal} onChange={(event) => setProgress(setDailyGoal(event.target.value))} className="ml-2 w-16 rounded-lg border border-gray-300 bg-transparent px-2 py-1 dark:border-white/20" /></label></div>
         <div className="mt-5 h-3 overflow-hidden rounded-full bg-gray-200 dark:bg-white/10"><div className="bar-smooth bar-grow-x h-full rounded-full bg-gradient-to-r from-neon-cyan to-neon-violet" style={{ width: `${Math.min(100, todayCount(progress) / progress.goal * 100)}%` }} /></div>
       </article>
       <article data-reveal className="glass rounded-3xl p-6">
         <h2 className="font-display text-xl font-bold">Atividade da semana</h2>
         {dashboard.total === 0 ? <p className="mt-6 text-sm text-gray-600 dark:text-white/60">Responda a primeira questão para desenhar o gráfico da semana.</p> : <div className="mt-6 flex h-36 items-end gap-3" aria-label="Questões respondidas nos últimos sete dias">
-          {dashboard.week.map((day, index) => <div key={day.key} className="flex flex-1 flex-col items-center gap-2"><span className="text-xs">{day.count || ''}</span><div className="bar-grow-y w-full rounded-t-lg bg-gradient-to-t from-neon-cyan to-neon-violet" style={{ height: `${Math.max(day.count ? 12 : 3, day.count / max * 100)}%`, '--bar-delay': `${index * 45}ms` }} title={`${day.count} questões`} /><span className="text-xs text-gray-500 dark:text-white/50">{day.label}</span></div>)}
+          {dashboard.week.map((day, index) => <div key={day.key} className="flex flex-1 flex-col items-center gap-2"><span className="text-xs">{day.count || ''}</span><div className="bar-grow-y w-full rounded-t-lg bg-gradient-to-t from-neon-cyan to-neon-violet" style={{ height: `${Math.max(day.count ? 12 : 3, day.count / max * 100)}%`, '--bar-delay': `${index * 45}ms` }} title={`${day.count} ${day.count === 1 ? 'questão' : 'questões'}`} /><span className="text-xs text-gray-500 dark:text-white/50">{day.label}</span></div>)}
         </div>}
       </article>
     </section>

@@ -594,7 +594,7 @@ export default function Simulados({ onOpenChat }) {
                     <Timer className="w-3.5 h-3.5" /> {formatTime(timeLeft)}
                   </div>
                 )}
-                <div className="text-xs text-gray-500 dark:text-white/50">{Object.keys(answers).length} respondidas</div>
+                <div className="text-xs text-gray-500 dark:text-white/50">{Object.keys(answers).length} {Object.keys(answers).length === 1 ? 'respondida' : 'respondidas'}</div>
               </div>
             </div>
             <div className="h-2 rounded-full bg-white/10 overflow-hidden mb-6">
@@ -687,7 +687,7 @@ export default function Simulados({ onOpenChat }) {
               <p className="text-gray-600 dark:text-white/60 mb-2">Índice de desempenho estimado (0–1000): {result.overall.low}–{result.overall.high}</p>
               <p className="text-xs text-gray-500 dark:text-white/60 mb-2">Faixa estatística aproximada de 95% para a proporção de acertos, supondo questões comparáveis e independentes. Não é intervalo da nota TRI oficial.</p>
               <p className="text-xs text-gray-500 dark:text-white/60 mb-2">Sem parâmetros calibrados das questões, a ordem dos acertos não permite estimar a TRI com segurança. Mesmo desempenho gera o mesmo índice, independentemente do embaralhamento.</p>
-              <p className="text-sm text-gray-500 dark:text-white/50">{result.correctCount} acertos de {result.total}</p>
+              <p className="text-sm text-gray-500 dark:text-white/50">{result.correctCount} {result.correctCount === 1 ? 'acerto' : 'acertos'} de {result.total}</p>
             </div>
             <div className="print-only">
               <h2>Questões e respostas</h2>
