@@ -6,10 +6,10 @@ import Navbar from './components/Navbar.jsx'
 import Hero from './components/Hero.jsx'
 import SubjectCards from './components/SubjectCards.jsx'
 import Footer from './components/Footer.jsx'
-import ChatAI from './components/ChatAI.jsx'
 import { ToastProvider } from './components/Toast.jsx'
 import { ThemeProvider } from './components/ThemeToggle.jsx'
 
+const ChatAI = lazy(() => import('./components/ChatAI.jsx'))
 const Quiz = lazy(() => import('./pages/Quiz.jsx'))
 const Explore = lazy(() => import('./pages/Explore.jsx'))
 const Simulados = lazy(() => import('./pages/Simulados.jsx'))
@@ -101,7 +101,8 @@ function ClosingBand() {
 }
 
 export default function App() {
-  const [chatOpen, setChatOpen] = useState(false)
+  // null até a primeira abertura; depois mantemos o tutor montado para preservar a conversa.
+  const [chatOpen, setChatOpen] = useState(null)
   const [chatContext, setChatContext] = useState('')
   const location = useLocation()
   const contentRef = useRef(null)
@@ -170,7 +171,11 @@ export default function App() {
               </Suspense>
             </div>
           <Footer />
-          <ChatAI open={chatOpen} onClose={() => setChatOpen(false)} context={chatContext} />
+          {chatOpen !== null && (
+            <Suspense fallback={<div role="status" className="fixed bottom-6 right-6 z-[60] glass-strong rounded-xl px-4 py-3">Abrindo tutor…</div>}>
+              <ChatAI open={chatOpen} onClose={() => setChatOpen(false)} context={chatContext} />
+            </Suspense>
+          )}
         </div>
       </ToastProvider>
     </ThemeProvider>
