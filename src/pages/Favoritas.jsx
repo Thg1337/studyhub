@@ -4,6 +4,7 @@ import { Bot, CheckCircle2, Image as ImageIcon, Loader2, MessageCircle, Search, 
 import { getFavorites, removeFavorite, updateFavoriteAnswer } from '../lib/favorites.js'
 import { askAI } from '../lib/ai.js'
 import AIResponse from '../components/AIResponse.jsx'
+import useModalFocus from '../lib/useModalFocus.js'
 
 const IMAGE_PATTERN = /!\[([^\]]*)\]\((https?:\/\/[^\s)]+)(?:\s+"[^"]*")?\)/g
 
@@ -76,6 +77,9 @@ export default function Favoritas({ onOpenChat }) {
   const [search, setSearch] = React.useState('')
   const [subject, setSubject] = React.useState('')
   const [zoom, setZoom] = React.useState(null)
+  const zoomDialogRef = React.useRef(null)
+  const closeZoomRef = React.useRef(null)
+  useModalFocus(Boolean(zoom), zoomDialogRef, closeZoomRef, () => setZoom(null))
   const [explanations, setExplanations] = React.useState({})
   const [loadingAI, setLoadingAI] = React.useState({})
   const [revealed, setRevealed] = React.useState({})
@@ -119,13 +123,6 @@ export default function Favoritas({ onOpenChat }) {
       setLoadingAI((previous) => ({ ...previous, [item.id]: false }))
     }
   }
-
-  React.useEffect(() => {
-    if (!zoom) return
-    const closeOnEscape = (event) => { if (event.key === 'Escape') setZoom(null) }
-    window.addEventListener('keydown', closeOnEscape)
-    return () => window.removeEventListener('keydown', closeOnEscape)
-  }, [zoom])
 
   return <main className="mx-auto max-w-6xl px-6 pb-24 pt-28">
     <div className="mb-9">
@@ -217,9 +214,9 @@ export default function Favoritas({ onOpenChat }) {
       </div>
     </div>}
 
-    {zoom && <div role="dialog" aria-modal="true" aria-label={zoom.alt} onClick={() => setZoom(null)}
+    {zoom && <div ref={zoomDialogRef} role="dialog" aria-modal="true" aria-label={zoom.alt} onClick={() => setZoom(null)}
       className="fixed inset-0 z-[100] flex items-center justify-center bg-ink-950/95 p-4">
-      <button autoFocus onClick={() => setZoom(null)} aria-label="Fechar imagem" className="absolute right-5 top-5 rounded-xl bg-white/10 p-2 text-white"><X className="h-6 w-6" /></button>
+      <button ref={closeZoomRef} onClick={() => setZoom(null)} aria-label="Fechar imagem" className="absolute right-5 top-5 rounded-xl bg-white/10 p-2 text-white"><X className="h-6 w-6" /></button>
       <img src={zoom.src} alt={zoom.alt} onClick={(event) => event.stopPropagation()} className="max-h-[85vh] max-w-full rounded-xl bg-white object-contain" />
     </div>}
   </main>
