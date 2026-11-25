@@ -50,7 +50,9 @@ test('navegação move o foco e anuncia o título da nova página', async () => 
     const link = [...document.querySelectorAll('a')].find((item) => item.getAttribute('href') === '/progresso')
     assert.ok(link)
     await click(link)
-    for (let attempt = 0; attempt < 20 && !document.querySelector('#conteudo-principal h1'); attempt++) {
+    for (let attempt = 0; attempt < 20 && document.querySelector('#conteudo-principal h1')?.textContent !== 'Painel de estudos'; attempt++) {
+      assert.ok(document.querySelector('#conteudo-principal h1'))
+      assert.doesNotMatch(document.body.textContent, /Carregando página/)
       await React.act(async () => new Promise((resolve) => setTimeout(resolve, 50)))
     }
     const title = document.querySelector('#conteudo-principal h1')

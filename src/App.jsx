@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, lazy, Suspense } from 'react'
+import React, { useDeferredValue, useEffect, useRef, useState, lazy, Suspense } from 'react'
 import { MotionConfig } from 'framer-motion'
 import { Routes, Route, Link, useLocation } from 'react-router-dom'
 import { ArrowRight } from 'lucide-react'
@@ -124,7 +124,8 @@ export default function App() {
   // null até a primeira abertura; depois mantemos o tutor montado para preservar a conversa.
   const [chatOpen, setChatOpen] = useState(null)
   const [chatContext, setChatContext] = useState('')
-  const location = useLocation()
+  // Mantém a página atual visível enquanto o código da próxima rota carrega.
+  const location = useDeferredValue(useLocation())
   const contentRef = useRef(null)
   const previousPath = useRef(location.pathname)
   const [pageAnnouncement, setPageAnnouncement] = useState('')
@@ -161,13 +162,13 @@ export default function App() {
           <a href="#conteudo-principal" className="skip-link">Pular para o conteúdo principal</a>
           <Navbar onOpenChat={() => { setChatContext(''); setChatOpen(true) }} onPreloadRoute={preloadRoute} />
           <span className="sr-only" role="status" aria-live="polite">{pageAnnouncement}</span>
+          <Suspense fallback={<main className="px-6 pt-28" role="status">Carregando página…</main>}>
             <div
               ref={contentRef}
               key={location.pathname}
               id="conteudo-principal"
               tabIndex="-1"
             >
-              <Suspense fallback={<main className="px-6 pt-28" role="status">Carregando página…</main>}>
               <div className={location.pathname === '/' ? undefined : 'page-enter'}>
               <Routes location={location}>
                 <Route
@@ -189,8 +190,8 @@ export default function App() {
                 <Route path="/progresso" element={<Progresso />} />
               </Routes>
               </div>
-              </Suspense>
             </div>
+          </Suspense>
           <Footer />
           {chatOpen !== null && (
             <Suspense fallback={<div role="status" className="fixed bottom-6 right-6 z-[60] glass-strong rounded-xl px-4 py-3">Abrindo tutor…</div>}>
