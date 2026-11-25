@@ -25,8 +25,8 @@ export function ToastProvider({ children }) {
               key={t.id}
               initial={{ opacity: 0, y: 16, scale: 0.96 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 10, scale: 0.96 }}
-              transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+              exit={{ opacity: 0, y: 6, scale: 0.97, transition: { duration: 0.15, ease: 'easeIn' } }}
+              transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
               className="pointer-events-auto glass-strong rounded-2xl px-4 py-3 flex items-center gap-3 shadow-glowv min-w-[220px]"
             >
               {t.type === 'success' && <CheckCircle2 className="w-5 h-5 text-emerald-400" />}

@@ -83,8 +83,8 @@ export default function Navbar({ onOpenChat, onPreloadRoute }) {
               id="menu-mobile"
               initial={{ opacity: 0, y: -8, scale: 0.98 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -8, scale: 0.98 }}
-              transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+              exit={{ opacity: 0, y: -6, scale: 0.98, transition: { duration: 0.15, ease: 'easeIn' } }}
+              transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
               className="nav-sheet glass-strong mt-2 rounded-2xl p-3 lg:hidden"
             >
               <nav className="flex flex-col" aria-label="Navegação móvel">

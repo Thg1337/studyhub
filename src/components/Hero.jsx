@@ -17,7 +17,7 @@ const options = [
 
 function QuestionPreview() {
   return (
-    <div className="reveal relative" style={{ '--reveal-delay': '260ms' }}>
+    <div className="hero-preview reveal relative" style={{ '--reveal-delay': '160ms' }}>
       <div className="preview">
         <div className="preview-bar">
           <span className="inline-flex items-center gap-2">

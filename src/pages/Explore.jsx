@@ -240,7 +240,7 @@ export default function Explore() {
       )}
 
       {error && (
-        <div key={error} role="alert" className="shake glass rounded-2xl p-4 mb-8 border border-rose-400/40 text-rose-300 text-sm whitespace-pre-line">
+        <div key={error} role="alert" className="glass rounded-2xl p-4 mb-8 border border-rose-400/40 text-rose-300 text-sm whitespace-pre-line">
           {error}
         </div>
       )}

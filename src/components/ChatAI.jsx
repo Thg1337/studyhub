@@ -122,7 +122,11 @@ export default function ChatAI({ open, onClose, context }) {
                           : 'glass rounded-bl-sm'
                       }`}
                     >
-                      {m.role === 'assistant' ? <React.Suspense fallback={<MathText text={m.text} />}><AIResponse text={m.text} /></React.Suspense> : <MathText text={m.text} />}
+                      {m.role === 'assistant' ? (
+                        <React.Suspense fallback={<MathText text={m.text} />}>
+                          <div className="tutor-response-enter"><AIResponse text={m.text} /></div>
+                        </React.Suspense>
+                      ) : <MathText text={m.text} />}
                     </div>
                     {m.role === 'user' && (
                       <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center shrink-0">

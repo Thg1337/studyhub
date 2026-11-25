@@ -166,9 +166,9 @@ export default function App() {
               key={location.pathname}
               id="conteudo-principal"
               tabIndex="-1"
-              className={location.pathname === '/' ? undefined : 'page-enter'}
             >
               <Suspense fallback={<main className="px-6 pt-28" role="status">Carregando página…</main>}>
+              <div className={location.pathname === '/' ? undefined : 'page-enter'}>
               <Routes location={location}>
                 <Route
                   path="/"
@@ -188,6 +188,7 @@ export default function App() {
                 <Route path="/favoritas" element={<Favoritas onOpenChat={(ctx) => { setChatContext(ctx); setChatOpen(true) }} />} />
                 <Route path="/progresso" element={<Progresso />} />
               </Routes>
+              </div>
               </Suspense>
             </div>
           <Footer />
