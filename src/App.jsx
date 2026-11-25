@@ -154,7 +154,7 @@ export default function App() {
   }, [location.pathname])
 
   return (
-    <MotionConfig reducedMotion="user">
+    <MotionConfig reducedMotion="never">
     <ThemeProvider>
       <ToastProvider>
         <div className="relative min-h-screen">
