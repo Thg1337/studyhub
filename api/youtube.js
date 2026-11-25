@@ -34,8 +34,11 @@ export default async function handler(req, res) {
     const r = await fetch(url, { signal: controller.signal })
     const data = await r.json().catch(() => ({}))
     if (!r.ok) {
-      const upstream = r.status < 500 ? (data?.error?.message || r.statusText) : 'Falha no provedor de vídeo'
-      res.status(r.status).json({ error: upstream })
+      const errors = data?.error?.errors
+      const quotaReasons = ['quotaExceeded', 'dailyLimitExceeded', 'rateLimitExceeded']
+      const limited = r.status === 429 || (r.status === 403 && Array.isArray(errors) &&
+        errors.some((entry) => quotaReasons.includes(entry?.reason)))
+      res.status(limited ? 429 : 502).json({ error: limited ? 'Limite de busca de vídeos atingido' : 'Falha no provedor de vídeo' })
       return
     }
     res.status(200).json(data)

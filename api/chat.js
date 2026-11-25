@@ -68,8 +68,8 @@ export default async function handler(req, res) {
 
     const data = await r.json().catch(() => ({}))
     if (!r.ok) {
-      const upstream = r.status < 500 ? (data?.error?.message || r.statusText) : 'Falha no provedor de IA'
-      res.status(r.status).json({ error: upstream })
+      const error = r.status === 429 ? 'Limite de uso da IA atingido' : 'Falha no provedor de IA'
+      res.status(r.status === 429 ? 429 : 502).json({ error })
       return
     }
     res.status(200).json(data)
