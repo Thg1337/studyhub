@@ -1,5 +1,5 @@
 import React from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Sparkles, Menu, X, Sun, Moon, ArrowUpRight } from 'lucide-react'
 import { useTheme } from './ThemeToggle.jsx'
@@ -14,19 +14,27 @@ const links = [
   { to: '/quiz/Matemática', label: 'Prática' }
 ]
 
-export default function Navbar({ onOpenChat, onPreloadRoute }) {
+export default function Navbar({ currentLocation, onOpenChat, onPreloadRoute }) {
   const [open, setOpen] = React.useState(false)
-  const loc = useLocation()
+  const [navigation, setNavigation] = React.useState(null)
+  const pending = navigation?.fromKey === currentLocation.key ? navigation.to : null
   const { theme, toggle } = useTheme()
   const isActive = (to) => to === '/quiz/Matemática'
-    ? loc.pathname.startsWith('/quiz/')
-    : loc.pathname === to
+    ? currentLocation.pathname.startsWith('/quiz/')
+    : currentLocation.pathname === to
+
+  function showNavigation(event, to) {
+    if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
+    const samePath = currentLocation.pathname === to || currentLocation.pathname === encodeURI(to)
+    setNavigation(samePath ? null : { fromKey: currentLocation.key, to })
+    setOpen(false)
+  }
 
   return (
     <header className="fixed inset-x-0 top-0 z-50">
       <div className="mx-auto max-w-7xl px-4 py-3 sm:px-6 sm:py-4">
         <div className="glass-strong flex items-center justify-between gap-3 rounded-2xl px-3 py-2.5 sm:px-5 sm:py-3">
-          <Link to="/" className="group flex items-center gap-2.5" aria-label="StudyHub — início">
+          <Link to="/" onClick={(event) => showNavigation(event, '/')} className="group flex items-center gap-2.5" aria-label="StudyHub — início">
             <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-neon-cyan text-ink-950 transition-transform duration-200 group-hover:-rotate-6">
               <Sparkles className="h-4 w-4" />
             </span>
@@ -39,7 +47,8 @@ export default function Navbar({ onOpenChat, onPreloadRoute }) {
                 key={link.to}
                 to={link.to}
                 data-active={isActive(link.to)}
-                className="nav-link"
+                className={`nav-link ${pending === link.to ? '!text-accent' : ''}`}
+                onClick={(event) => showNavigation(event, link.to)}
                 onMouseEnter={() => onPreloadRoute?.(link.to)}
                 onFocus={() => onPreloadRoute?.(link.to)}
                 aria-current={isActive(link.to) ? 'page' : undefined}
@@ -66,13 +75,14 @@ export default function Navbar({ onOpenChat, onPreloadRoute }) {
             </button>
 
             <button
-              className="flex h-9 w-9 items-center justify-center rounded-full border border-line text-fg lg:hidden"
+              className={`relative flex h-9 w-9 items-center justify-center rounded-full border border-line text-fg lg:hidden ${pending ? 'border-accent/50' : ''}`}
               onClick={() => setOpen(!open)}
               aria-expanded={open}
               aria-controls="menu-mobile"
               aria-label={open ? 'Fechar menu' : 'Abrir menu'}
             >
               {open ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
+              {pending && <span aria-hidden="true" className="absolute right-0 top-0 h-2 w-2 rounded-full bg-accent" />}
             </button>
           </div>
         </div>
@@ -92,10 +102,11 @@ export default function Navbar({ onOpenChat, onPreloadRoute }) {
                   <Link
                     key={link.to}
                     to={link.to}
-                    onClick={() => setOpen(false)}
+                    onClick={(event) => showNavigation(event, link.to)}
                     onMouseEnter={() => onPreloadRoute?.(link.to)}
                     onFocus={() => onPreloadRoute?.(link.to)}
-                    className="flex items-center justify-between rounded-xl px-4 py-3 text-sm text-muted transition-colors duration-150 hover:bg-surface hover:text-fg"
+                    aria-current={isActive(link.to) ? 'page' : undefined}
+                    className={`flex items-center justify-between rounded-xl px-4 py-3 text-sm transition-colors duration-150 hover:bg-surface hover:text-fg ${pending === link.to ? 'bg-surface text-accent' : 'text-muted'}`}
                   >
                     {link.label}
                     <ArrowUpRight className="h-3.5 w-3.5 text-faint" />

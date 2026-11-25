@@ -160,7 +160,7 @@ export default function App() {
       <ToastProvider>
         <div className="relative min-h-screen">
           <a href="#conteudo-principal" className="skip-link">Pular para o conteúdo principal</a>
-          <Navbar onOpenChat={() => { setChatContext(''); setChatOpen(true) }} onPreloadRoute={preloadRoute} />
+          <Navbar currentLocation={location} onOpenChat={() => { setChatContext(''); setChatOpen(true) }} onPreloadRoute={preloadRoute} />
           <span className="sr-only" role="status" aria-live="polite">{pageAnnouncement}</span>
           <Suspense fallback={<main className="px-6 pt-28" role="status">Carregando página…</main>}>
             <div
