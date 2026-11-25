@@ -6,7 +6,7 @@ import { toggleFavorite, isFavorite, updateFavoriteAnswer } from '../lib/favorit
 import { recordResult, getDue } from '../lib/spaced.js'
 import { recordStudy, recordAnswer, getProgress, getStreak, setDailyGoal, todayCount } from '../lib/progress.js'
 import { askAI } from '../lib/ai.js'
-import { validateQuestion } from '../lib/quizValidation.js'
+import { batchQuestionsForReview, validateQuestion } from '../lib/quizValidation.js'
 import AIResponse from '../components/AIResponse.jsx'
 import { safeImageUrl } from '../lib/safeUrl.js'
 import MathText from '../components/MathText.jsx'
@@ -65,7 +65,7 @@ export default function Quiz({ onOpenChat }) {
   const [searchParams] = useSearchParams()
   const toast = useToast()
   const [mode, setMode] = React.useState('config') // config | loading | quiz | result
-  const [topic, setTopic] = React.useState(searchParams.get('topic') || (subject && subject !== 'Matemática' ? subject : ''))
+  const [topic, setTopic] = React.useState(searchParams.get('topic') || (subject && !['Matemática', 'Geral'].includes(subject) ? subject : ''))
   const [discipline, setDiscipline] = React.useState(subject === 'Matemática' ? 'Matemática' : 'Não classificada')
   const [count, setCount] = React.useState(5)
   const [questions, setQuestions] = React.useState([])
@@ -130,13 +130,16 @@ export default function Quiz({ onOpenChat }) {
       const candidates = parseQuestions(text).filter(validateQuestion)
       if (candidates.length === 0) throw new Error('A IA não retornou questões confiáveis. Tente novamente.')
       setLoadingMsg('Conferindo gabaritos e enunciados...')
-      const audit = await askAI([
-        { role: 'system', content: 'Você é revisor independente de questões. Resolva cada uma sem confiar no gabarito nem na explicação. Retorne APENAS um array JSON com os índices (base zero) das questões que possuem todos os dados necessários, uma única resposta correta e gabarito e explicação matematicamente coerentes. Na dúvida, exclua a questão.' },
-        { role: 'user', content: JSON.stringify(candidates.map(({ q, opts, correct, explain }) => ({ q, opts, correct, explain }))) }
-      ], { temperature: 0, max_tokens: 500, format: 'json' })
-      const approved = JSON.parse(audit.replace(/^```json\s*|^```\s*|```\s*$/gi, '').trim())
-      if (!Array.isArray(approved) || !approved.every((index) => Number.isInteger(index) && index >= 0 && index < candidates.length)) throw new Error('Não foi possível conferir as questões. Tente novamente.')
-      const qs = [...new Set(approved)].map((index) => candidates[index]).filter(validateQuestion)
+      const qs = []
+      for (const batch of batchQuestionsForReview(candidates)) {
+        const audit = await askAI([
+          { role: 'system', content: 'Você é revisor independente de questões. Resolva cada uma sem confiar no gabarito nem na explicação. Retorne APENAS um array JSON com os índices (base zero) das questões que possuem todos os dados necessários, uma única resposta correta e gabarito e explicação matematicamente coerentes. Na dúvida, exclua a questão.' },
+          { role: 'user', content: JSON.stringify(batch.map(({ q, opts, correct, explain }) => ({ q, opts, correct, explain }))) }
+        ], { temperature: 0, max_tokens: 500, format: 'json' })
+        const approved = JSON.parse(audit.replace(/^```json\s*|^```\s*|```\s*$/gi, '').trim())
+        if (!Array.isArray(approved) || !approved.every((index) => Number.isInteger(index) && index >= 0 && index < batch.length)) throw new Error('Não foi possível conferir as questões. Tente novamente.')
+        qs.push(...[...new Set(approved)].map((index) => batch[index]))
+      }
       if (qs.length === 0) throw new Error('A IA não retornou questões confiáveis. Tente novamente.')
       toast('Questões geradas com sucesso!', 'success')
       setQuestions(qs)

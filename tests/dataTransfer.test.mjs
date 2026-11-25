@@ -43,6 +43,17 @@ test('importa um backup válido e descarta campos inesperados', async () => {
   assert.equal(JSON.parse(values.get(keys[3]))[0].front, '2 + 2?')
 })
 
+test('recupera o histórico de simulados e converte metas fracionárias antigas', async () => {
+  const values = storage()
+  const result = { date: '23/11/2026', year: '2023', overall: 750, total: 10, correctCount: 8,
+    method: 'performance-v2', disciplines: ['matematica'] }
+  await importStudyData(file(backup({ progress: { goal: 1.5, days: {} }, examHistory: [result] })))
+  assert.deepEqual(JSON.parse(values.get('enem_history')), [result])
+  assert.equal(JSON.parse(values.get(keys[0])).goal, 2)
+  await importStudyData(file(backup()))
+  assert.deepEqual(JSON.parse(values.get('enem_history')), [result])
+})
+
 test('exporta e restaura cartões ainda não revisados', async () => {
   storage({ [flashcardsKey]: JSON.stringify([card]) })
   const originalDocument = globalThis.document

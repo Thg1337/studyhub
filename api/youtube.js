@@ -2,6 +2,8 @@ import { createOriginChecker } from './_origin.js'
 
 const isAllowedOrigin = createOriginChecker()
 const UPSTREAM_TIMEOUT_MS = 15000
+const SEARCH_TTL_MS = 5 * 60 * 1000
+const searchCache = new Map()
 
 export default async function handler(req, res) {
   if (!isAllowedOrigin(req)) {
@@ -20,13 +22,20 @@ export default async function handler(req, res) {
   }
 
   const q = String(req.query?.q || '').slice(0, 200).trim()
-  const maxResults = Math.min(12, Math.max(1, Number(req.query?.maxResults) || 6))
+  const maxResults = Math.min(12, Math.max(1, Math.trunc(Number(req.query?.maxResults) || 6)))
 
   if (!q) {
     res.status(400).json({ error: 'Parâmetro q é obrigatório' })
     return
   }
 
+  const cacheKey = JSON.stringify([q.toLocaleLowerCase('pt-BR'), maxResults])
+  const cached = searchCache.get(cacheKey)
+  if (cached?.expiresAt > Date.now()) {
+    res.status(200).json(cached.data)
+    return
+  }
+  if (cached) searchCache.delete(cacheKey)
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), UPSTREAM_TIMEOUT_MS)
   try {
@@ -40,6 +49,10 @@ export default async function handler(req, res) {
         errors.some((entry) => quotaReasons.includes(entry?.reason)))
       res.status(limited ? 429 : 502).json({ error: limited ? 'Limite de busca de vídeos atingido' : 'Falha no provedor de vídeo' })
       return
+    }
+    if (Array.isArray(data.items)) {
+      if (searchCache.size >= 100) searchCache.delete(searchCache.keys().next().value)
+      searchCache.set(cacheKey, { data, expiresAt: Date.now() + SEARCH_TTL_MS })
     }
     res.status(200).json(data)
   } catch (e) {

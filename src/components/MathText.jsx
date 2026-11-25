@@ -4,9 +4,9 @@ import 'katex/dist/katex.min.css'
 
 function renderMath(tex, displayMode) {
   try {
-    return katex.renderToString(tex, { displayMode, throwOnError: false, output: 'html' })
+    return katex.renderToString(tex, { displayMode, throwOnError: false, trust: false, output: 'htmlAndMathml' })
   } catch {
-    return tex
+    return null
   }
 }
 
@@ -50,10 +50,12 @@ export default function MathText({ text, className = '' }) {
         if (seg.type === 'text') {
           return <span key={i} style={{ whiteSpace: 'pre-line' }}>{seg.value}</span>
         }
+        const html = renderMath(seg.value, seg.display)
+        if (html === null) return <span key={i}>{seg.value}</span>
         return (
           <span
             key={i}
-            dangerouslySetInnerHTML={{ __html: renderMath(seg.value, seg.display) }}
+            dangerouslySetInnerHTML={{ __html: html }}
           />
         )
       })}

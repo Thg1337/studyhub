@@ -7,6 +7,26 @@ const numericOption = (value) => {
   return match ? number(match[1]) : null
 }
 
+export function batchQuestionsForReview(questions, maxLength = 4000) {
+  const batches = []
+  let batch = []
+  let length = 2
+  for (const question of questions) {
+    const { q, opts, correct, explain } = question
+    const size = JSON.stringify({ q, opts, correct, explain }).length
+    if (size + 2 > maxLength) continue
+    if (length + size + (batch.length ? 1 : 0) > maxLength) {
+      batches.push(batch)
+      batch = []
+      length = 2
+    }
+    length += size + (batch.length ? 1 : 0)
+    batch.push(question)
+  }
+  if (batch.length) batches.push(batch)
+  return batches
+}
+
 // Confere contas simples sem depender do mesmo modelo que escreveu o gabarito.
 export function validateQuestion(question) {
   const prompt = question.q || ''
@@ -24,7 +44,8 @@ export function validateQuestion(question) {
   }
   if (expected === null) return true
   const matches = opts.map(numericOption).map((value) => value !== null && Math.abs(value - expected) < 1e-9)
-  const statedResult = String(question.explain || '').match(/(?:resposta|resultado)\s*(?:é|:)\s*([\d.,]+)\s*(?:m[³3]|metros? c[uú]bicos?)?/i)
+  const statedResult = String(question.explain || '').match(/(?:resposta|resultado)\s*(?:é|:)\s*([\d.,]+)\s*(litros?\b|l\b|m[³3]|metros? c[uú]bicos?)?/i)
+  const statedVolume = statedResult && number(statedResult[1]) / (/^l/i.test(statedResult[2] || '') ? 1000 : 1)
   return matches.filter(Boolean).length === 1 && matches[question.correct] === true &&
-    (!statedResult || Math.abs(number(statedResult[1]) - expected) < 1e-9)
+    (!statedResult || Math.abs(statedVolume - expected) < 1e-9)
 }

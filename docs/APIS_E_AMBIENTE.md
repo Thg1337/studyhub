@@ -33,11 +33,19 @@ Corpo JSON:
 
 Em sucesso, a rota devolve a resposta JSON da Groq. A consulta ao provedor expira após 25 segundos.
 
+### Teto diário opcional da IA
+
+Para ativar um teto compartilhado entre as funções, configure `CHAT_DAILY_REQUEST_LIMIT` como um inteiro positivo no ambiente da Vercel e forneça `UPSTASH_REDIS_REST_URL` e `UPSTASH_REDIS_REST_TOKEN` de uma instância Redis da Upstash. Mantenha o token apenas no servidor. O contador reinicia à meia-noite UTC e guarda apenas a contagem agregada de solicitações enviadas ao provedor, inclusive quando o provedor falha. Cada solicitação pode pedir no máximo 3.000 tokens de saída. O orçamento diário limita solicitações, e o limite por IP continua separado.
+
+Sem `CHAT_DAILY_REQUEST_LIMIT`, o orçamento diário fica desativado. Com ele ativo, a função retorna 429 ao atingir o teto ou 503 se o contador compartilhado estiver indisponível.
+
 ## `GET /api/youtube`
 
 Parâmetros de consulta: `q` é obrigatório e limitado aos primeiros 200 caracteres; `maxResults` é opcional, usa 6 por padrão e é limitado a 1–12. A busca solicita apenas vídeos e retorna o JSON da YouTube Data API. A consulta ao provedor expira após 15 segundos.
 
 Exemplo: `/api/youtube?q=fotoss%C3%ADntese&maxResults=6`.
+
+Resultados de buscas bem-sucedidas são reutilizados por até cinco minutos na mesma instância. O cache mantém até 100 entradas.
 
 ## Respostas de erro
 
@@ -46,8 +54,10 @@ Exemplo: `/api/youtube?q=fotoss%C3%ADntese&maxResults=6`.
 | 400 | Entrada inválida, termo de busca ausente ou modelo não permitido |
 | 403 | Origem não permitida em produção |
 | 405 | Método HTTP incorreto |
-| 429 | Limite comunicado pelo provedor ou pela proteção da plataforma |
+| 429 | Limite diário de IA, do provedor ou da proteção da plataforma |
 | 500 | Chave ausente ou erro interno da função |
+| 502 | Falha do provedor |
+| 503 | Contador do teto diário indisponível |
 | 504 | Tempo esgotado ao consultar o provedor |
 
-Outros códigos de erro do provedor também podem ser repassados. As funções respondem erros como JSON com a propriedade `error`; falhas HTTP 5xx do provedor usam uma mensagem genérica. Uma resposta gerada pela proteção da plataforma, como um 429, pode ter outro formato.
+As funções retornam JSON com a propriedade `error` e usam mensagens próprias para falhas do provedor. Uma resposta gerada pela proteção da plataforma, como um 429, pode ter outro formato.

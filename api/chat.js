@@ -1,4 +1,5 @@
 import { createOriginChecker } from './_origin.js'
+import { reserveChatRequest } from './_usageBudget.js'
 
 const isAllowedOrigin = createOriginChecker()
 
@@ -52,6 +53,14 @@ export default async function handler(req, res) {
     ? Math.min(2, Math.max(0, requestedTemperature))
     : 0.7
   const max_tokens = Math.min(3000, Math.max(1, Number(body.max_tokens) || 1024))
+
+  const budget = await reserveChatRequest()
+  if (budget === 'limited' || budget === 'unavailable') {
+    res.status(budget === 'limited' ? 429 : 503).json({
+      error: budget === 'limited' ? 'Limite diário da IA atingido' : 'IA temporariamente indisponível'
+    })
+    return
+  }
 
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), UPSTREAM_TIMEOUT_MS)

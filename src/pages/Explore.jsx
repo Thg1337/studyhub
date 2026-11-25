@@ -47,7 +47,7 @@ export default function Explore() {
   const [error, setError] = React.useState('')
   const [videoError, setVideoError] = React.useState('')
   const [playingId, setPlayingId] = React.useState(null)
-  const [summary, setSummary] = React.useState('')
+  const [summary, setSummary] = React.useState(null)
   const [loadingSummary, setLoadingSummary] = React.useState(false)
   const [summaryKind, setSummaryKind] = React.useState('resumo')
 
@@ -74,15 +74,11 @@ export default function Explore() {
     }))
   }
 
-  const summaryKindRef = React.useRef(summaryKind)
-  React.useEffect(() => { summaryKindRef.current = summaryKind }, [summaryKind])
-
   const fetchSummary = async () => {
     const t = (topic || activeTopic).trim()
     if (!t) { toast('Informe um assunto.', 'error'); return }
-    const kind = summaryKindRef.current
+    const kind = summaryKind
     setLoadingSummary(true)
-    setSummary('')
     try {
       const instructions = {
         resumo: 'Gere um resumo de revisão de 1 página, em tópicos curtos, com conceitos, fórmulas e pontos-chave. Use markdown simples.',
@@ -95,7 +91,8 @@ export default function Explore() {
         { role: 'system', content: `Você é um tutor em português do Brasil. ${instruction} Use Markdown simples, sem entidades HTML. Coloque fórmulas entre $...$ ou $$...$$, confira as contas e não use comandos LaTeX fora das fórmulas.` },
         { role: 'user', content: `Assunto: ${t}` }
       ]
-      setSummary(await askAI(messages, { temperature: 0.5, max_tokens: 1200 }))
+      const text = await askAI(messages, { temperature: 0.5, max_tokens: 1200 })
+      setSummary({ kind, text, topic: t })
     } catch (e) {
       toast(e.message || 'Erro ao gerar resumo.', 'error')
     } finally {
@@ -103,10 +100,10 @@ export default function Explore() {
     }
   }
 
-  const handleSearch = async (e) => {
-    e?.preventDefault()
-    const t = topic.trim()
-    if (!t) return
+  const searchVersion = React.useRef(0)
+  function search(t) {
+    const version = ++searchVersion.current
+    const latest = () => version === searchVersion.current
     setActiveTopic(t)
     setAiText('')
     setVideos([])
@@ -115,58 +112,39 @@ export default function Explore() {
     setPlayingId(null)
     setLoadingAI(true)
     setLoadingVideos(true)
-    try {
-      const [text, vids] = await Promise.allSettled([fetchAI(t), fetchVideos(t)])
-      if (text.status === 'fulfilled') setAiText(text.value)
-      else setError(text.reason?.message || 'Não foi possível consultar a IA.')
-      if (vids.status === 'fulfilled') {
-        setVideos(vids.value)
-        if (vids.value.length > 0) setPlayingId(vids.value[0].id)
-      }
-      else setVideoError(vids.reason?.message || 'Não foi possível buscar vídeos.')
-    } finally {
-      setLoadingAI(false)
-      setLoadingVideos(false)
-    }
+
+    fetchAI(t)
+      .then((text) => { if (latest()) setAiText(text) })
+      .catch((error) => { if (latest()) setError(error.message || 'Não foi possível consultar a IA.') })
+      .finally(() => { if (latest()) setLoadingAI(false) })
+
+    fetchVideos(t)
+      .then((items) => {
+        if (!latest()) return
+        setVideos(items)
+        setPlayingId(items[0]?.id ?? null)
+      })
+      .catch((error) => { if (latest()) setVideoError(error.message || 'Não foi possível buscar vídeos.') })
+      .finally(() => { if (latest()) setLoadingVideos(false) })
   }
 
-  // Auto-busca quando topic vem pela URL (ex: cards da home)
+  const handleSearch = (event) => {
+    event.preventDefault()
+    const t = topic.trim()
+    if (t) search(t)
+  }
+
+  // A busca inicial vem do cartão de matéria da página inicial.
   const autoSearchRef = React.useRef('')
+  const urlTopic = searchParams.get('topic')?.trim() || ''
   React.useEffect(() => {
-    const t = searchParams.get('topic')
-    if (!t) { autoSearchRef.current = ''; return }
-    if (autoSearchRef.current === t) return
-    autoSearchRef.current = t
-    if (t) {
-      setTopic(t)
-      // dispara busca
-      const fakeEvent = { preventDefault: () => {} }
-      // chama handleSearch com o tópico
-      ;(async () => {
-        setActiveTopic(t)
-        setAiText('')
-        setVideos([])
-        setVideoError('')
-        setError('')
-        setPlayingId(null)
-        setLoadingAI(true)
-        setLoadingVideos(true)
-        try {
-          const [text, vids] = await Promise.allSettled([fetchAI(t), fetchVideos(t)])
-          if (text.status === 'fulfilled') setAiText(text.value)
-          else setError(text.reason?.message || 'Não foi possível consultar a IA.')
-          if (vids.status === 'fulfilled') {
-            setVideos(vids.value)
-            if (vids.value.length > 0) setPlayingId(vids.value[0].id)
-          } else setVideoError(vids.reason?.message || 'Não foi possível buscar vídeos.')
-        } finally {
-          setLoadingAI(false)
-          setLoadingVideos(false)
-        }
-      })()
-    }
+    if (autoSearchRef.current === urlTopic) return
+    autoSearchRef.current = urlTopic
+    if (!urlTopic) return
+    setTopic(urlTopic)
+    search(urlTopic)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams])
+  }, [urlTopic])
 
   return (
     <div className="pt-28 pb-24 max-w-6xl mx-auto px-6">
@@ -216,7 +194,7 @@ export default function Explore() {
           ['revisao', ListChecks, 'Revisão 5 min']
         ].map(([key, Icon, label]) => <button key={key} onClick={() => setSummaryKind(key)}
           className={`inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm ${summaryKind === key ? 'bg-neon-cyan/20 border border-neon-cyan/60' : 'glass hover:bg-white/10'}`}><Icon className="h-4 w-4" />{label}</button>)}
-        <Link to={`/quiz/Matemática?topic=${encodeURIComponent(topic || activeTopic)}`} className="inline-flex items-center gap-2 rounded-xl glass px-3 py-2 text-sm hover:bg-white/10"><Sparkles className="h-4 w-4" />Praticar assunto</Link>
+        <Link to={`/quiz/Geral?topic=${encodeURIComponent(topic || activeTopic)}`} className="inline-flex items-center gap-2 rounded-xl glass px-3 py-2 text-sm hover:bg-white/10"><Sparkles className="h-4 w-4" />Praticar assunto</Link>
       </div>
 
       {!activeTopic && !error && (
@@ -356,9 +334,10 @@ export default function Explore() {
         >
           <div className="flex items-center gap-2 mb-4">
             <BookOpen className="w-5 h-5 text-neon-cyan" />
-            <h2 className="font-display text-xl font-bold">{({ resumo: 'Resumo de revisão', mapa: 'Mapa mental em texto', formulas: 'Fórmulas e regras', revisao: 'Revisão ativa de 5 minutos' })[summaryKind]}</h2>
+            <h2 className="font-display text-xl font-bold">{({ resumo: 'Resumo de revisão', mapa: 'Mapa mental em texto', formulas: 'Fórmulas e regras', revisao: 'Revisão ativa de 5 minutos' })[summary.kind]}</h2>
           </div>
-          <AIResponse text={decodeEntities(summary)} />
+          <p className="mb-3 text-sm text-muted">{summary.topic}</p>
+          <AIResponse text={decodeEntities(summary.text)} />
         </motion.div>
       )}
     </div>

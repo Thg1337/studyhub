@@ -5,17 +5,9 @@ import { getFavorites, removeFavorite, updateFavoriteAnswer } from '../lib/favor
 import { askAI } from '../lib/ai.js'
 import AIResponse from '../components/AIResponse.jsx'
 import useModalFocus from '../lib/useModalFocus.js'
+import { safeImageUrl } from '../lib/safeUrl.js'
 
 const IMAGE_PATTERN = /!\[([^\]]*)\]\((https?:\/\/[^\s)]+)(?:\s+"[^"]*")?\)/g
-
-function safeImageUrl(value) {
-  try {
-    const url = new URL(value)
-    return ['http:', 'https:'].includes(url.protocol) ? url.href : null
-  } catch {
-    return null
-  }
-}
 
 function QuestionText({ text, onZoom }) {
   const content = String(text || '')

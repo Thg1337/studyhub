@@ -1,17 +1,18 @@
 const KEY = 'studyhub_daily_progress'
 const EVENTS_KEY = 'studyhub_study_events'
+export const normalizeDailyGoal = (goal) => Math.max(1, Math.min(200, Math.round(Number(goal) || 10)))
 const dateKey = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
 
 export function getProgress() {
   try {
     const value = JSON.parse(localStorage.getItem(KEY) || '{}')
-    return { goal: Math.max(1, Number(value.goal) || 10), days: value.days || {} }
+    return { goal: normalizeDailyGoal(value.goal), days: value.days || {} }
   } catch { return { goal: 10, days: {} } }
 }
 
 export function setDailyGoal(goal) {
   const progress = getProgress()
-  progress.goal = Math.max(1, Math.min(200, Number(goal) || 10))
+  progress.goal = normalizeDailyGoal(goal)
   try { localStorage.setItem(KEY, JSON.stringify(progress)) } catch { /* progresso local indisponível */ }
   return progress
 }

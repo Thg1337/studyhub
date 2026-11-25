@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { X, Send, Sparkles, Bot, User } from 'lucide-react'
 import MathText from './MathText.jsx'
 import { askAI } from '../lib/ai.js'
+import useModalFocus from '../lib/useModalFocus.js'
 
 const AIResponse = React.lazy(() => import('./AIResponse.jsx'))
 
@@ -18,18 +19,30 @@ export default function ChatAI({ open, onClose, context }) {
   const [input, setInput] = React.useState('')
   const [typing, setTyping] = React.useState(false)
   const scrollRef = React.useRef(null)
+  const dialogRef = React.useRef(null)
+  const closeButtonRef = React.useRef(null)
+  const requestVersion = React.useRef(0)
+  const followScroll = React.useRef(true)
+  useModalFocus(open, dialogRef, closeButtonRef, onClose)
 
   React.useEffect(() => {
+    requestVersion.current += 1
+    followScroll.current = true
+    setTyping(false)
     setMessages([{ role: 'assistant', text: context ? 'Estou vendo a questão atual. O que você gostaria de entender?' : 'Olá! Sou seu tutor de IA. Posso simplificar qualquer assunto. O que você gostaria de entender?' }])
   }, [context])
 
   React.useEffect(() => {
-    if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight
-  }, [messages, typing])
+    if (open && followScroll.current && scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight
+    }
+  }, [messages, typing, open])
 
   const send = async () => {
     const t = input.trim()
     if (!t || typing) return
+    const version = ++requestVersion.current
+    followScroll.current = true
     const userMsg = { role: 'user', text: t }
     const nextMessages = [...messages, userMsg]
     setMessages(nextMessages)
@@ -47,11 +60,13 @@ export default function ChatAI({ open, onClose, context }) {
         .map((m) => ({ role: m.role, content: m.text }))
 
       const reply = await askAI([{ role: 'system', content: systemContent }, ...apiMessages], { max_tokens: 900 })
+      if (version !== requestVersion.current) return
+      followScroll.current = false
       setMessages((m) => [...m, { role: 'assistant', text: reply }])
     } catch (err) {
-      setMessages((m) => [...m, { role: 'assistant', text: `⚠️ Erro ao consultar a IA: ${err.message}` }])
+      if (version === requestVersion.current) setMessages((m) => [...m, { role: 'assistant', text: `⚠️ Erro ao consultar a IA: ${err.message}` }])
     } finally {
-      setTyping(false)
+      if (version === requestVersion.current) setTyping(false)
     }
   }
 
@@ -74,11 +89,15 @@ export default function ChatAI({ open, onClose, context }) {
           />
 
           <motion.div
+            ref={dialogRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="studyhub-tutor-title"
             initial={{ y: 24, scale: 0.97, opacity: 0 }}
             animate={{ y: 0, scale: 1, opacity: 1 }}
             exit={{ y: 24, scale: 0.97, opacity: 0 }}
             transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-            className="relative w-full max-w-3xl h-[85vh] glass-strong rounded-3xl flex flex-col overflow-hidden shadow-glowv"
+            className="relative w-full max-w-3xl h-[85vh] supports-[height:100dvh]:h-[85dvh] glass-strong rounded-3xl flex flex-col overflow-hidden shadow-glowv"
           >
             {/* header */}
               <div className="px-6 py-4 border-b border-gray-200 dark:border-white/10 flex items-center justify-between">
@@ -87,20 +106,23 @@ export default function ChatAI({ open, onClose, context }) {
                   <Bot className="w-5 h-5 text-ink-950" />
                 </div>
                 <div>
-                  <div className="font-display font-bold">Tutor IA</div>
+                  <div id="studyhub-tutor-title" className="font-display font-bold">Tutor IA</div>
                   <div className="text-xs text-gray-500 dark:text-white/50 flex items-center gap-1.5">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" /> Online
                   </div>
                 </div>
               </div>
-              {context && <div className="px-6 py-2 text-xs text-neon-cyan border-b border-white/10">Tutor com contexto da questão atual</div>}
-              <button onClick={onClose} aria-label="Fechar tutor IA" className="p-2 rounded-xl hover:bg-white/10 transition-colors">
+              <button ref={closeButtonRef} onClick={onClose} aria-label="Fechar tutor IA" className="p-2 rounded-xl hover:bg-white/10 transition-colors">
                 <X className="w-5 h-5" />
               </button>
             </div>
+            {context && <p className="px-6 py-2 text-xs text-neon-cyan border-b border-white/10">Tutor com contexto da questão atual</p>}
 
             {/* messages */}
-            <div ref={scrollRef} className="flex-1 overflow-y-auto scrollbar-thin p-6 space-y-4">
+            <div ref={scrollRef} role="log" aria-label="Conversa com o Tutor" className="min-h-0 flex-1 overflow-y-auto scrollbar-thin p-4 sm:p-6 space-y-4" onScroll={(event) => {
+              const panel = event.currentTarget
+              followScroll.current = panel.scrollHeight - panel.scrollTop - panel.clientHeight < 32
+            }}>
               <AnimatePresence initial={false}>
                 {messages.map((m, i) => (
                   <motion.div
@@ -169,17 +191,21 @@ export default function ChatAI({ open, onClose, context }) {
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && send()}
                   placeholder="Pergunte algo ao tutor..."
-                  className="flex-1 bg-transparent outline-none text-sm py-2 placeholder:text-gray-400 dark:text-white/40"
+                  aria-label="Mensagem para o Tutor"
+                  maxLength={4000}
+                  className="min-w-0 flex-1 bg-transparent outline-none text-sm py-2 placeholder:text-gray-400 dark:text-white/85"
                 />
                 <button
                   onClick={send}
-                  className="w-9 h-9 rounded-xl bg-gradient-to-r from-neon-cyan to-neon-violet flex items-center justify-center text-ink-950 hover:opacity-90 transition-opacity"
+                  aria-label="Enviar mensagem"
+                  disabled={!input.trim() || typing}
+                  className="shrink-0 w-9 h-9 rounded-xl bg-gradient-to-r from-neon-cyan to-neon-violet flex items-center justify-center text-ink-950 hover:opacity-90 transition-opacity disabled:opacity-50"
                 >
                   <Send className="w-4 h-4" />
                 </button>
               </div>
-              <div className="flex items-center gap-2 mt-2 text-[11px] text-gray-400 dark:text-white/40">
-                <Sparkles className="w-3 h-3" /> Tutor IA · Groq (gpt-oss-20b) — respostas em tempo real
+              <div className="flex items-start gap-2 mt-2 text-[11px] text-gray-600 dark:text-white/65">
+                <Sparkles className="w-3 h-3 shrink-0" aria-hidden="true" /> A Groq recebe esta mensagem, até sete mensagens recentes e o contexto da questão, quando houver.
               </div>
             </div>
           </motion.div>

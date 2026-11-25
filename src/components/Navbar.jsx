@@ -18,6 +18,9 @@ export default function Navbar({ currentLocation, onOpenChat, onPreloadRoute }) 
   const [open, setOpen] = React.useState(false)
   const [navigation, setNavigation] = React.useState(null)
   const pending = navigation?.fromKey === currentLocation.key ? navigation.to : null
+  React.useEffect(() => {
+    setNavigation((request) => request?.fromKey === currentLocation.key ? request : null)
+  }, [currentLocation.key])
   const { theme, toggle } = useTheme()
   const isActive = (to) => to === '/quiz/Matemática'
     ? currentLocation.pathname.startsWith('/quiz/')

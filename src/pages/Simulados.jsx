@@ -7,6 +7,7 @@ import { recordStudy, recordAnswer } from '../lib/progress.js'
 import { askAI } from '../lib/ai.js'
 import AIResponse from '../components/AIResponse.jsx'
 import { safeImageUrl } from '../lib/safeUrl.js'
+import { EXAM_HISTORY_KEY, readExamHistory, readExamDraft, saveExamDraft, saveExamTimer, stripRenderedExamImages } from '../lib/examStorage.js'
 import { estimatePerformance } from '../lib/score.js'
 
 const API_BASE = 'https://api.enem.dev/v1'
@@ -50,47 +51,41 @@ function shuffle(arr) {
   return a
 }
 
-function readHistory() {
-  try {
-    const raw = localStorage.getItem('enem_history')
-    return raw ? JSON.parse(raw) : []
-  } catch { return [] }
-}
 function writeHistory(entry) {
   try {
-    const h = readHistory()
-    h.unshift(entry)
-    localStorage.setItem('enem_history', JSON.stringify(h.slice(0, 20)))
+    localStorage.setItem(EXAM_HISTORY_KEY, JSON.stringify([entry, ...readExamHistory()].slice(0, 20)))
   } catch {}
 }
 
 export default function Simulados({ onOpenChat }) {
-  const [mode, setMode] = React.useState('intro')
+  const [draft] = React.useState(readExamDraft)
+  const [mode, setMode] = React.useState(draft ? 'exam' : 'intro')
   const [guideOpen, setGuideOpen] = React.useState(false)
   const [language, setLanguage] = React.useState('ingles')
   const [mixYears, setMixYears] = React.useState(true)
   const [selectedYear, setSelectedYear] = React.useState('2023')
-  const [realExamMode, setRealExamMode] = React.useState(false)
+  const [realExamMode, setRealExamMode] = React.useState(draft?.realExamMode ?? false)
   const [totalTimeLeft, setTotalTimeLeft] = React.useState(330 * 60)
   const [showOnlyWrong, setShowOnlyWrong] = React.useState(false)
-  const [selectedDisciplines, setSelectedDisciplines] = React.useState([...DISCIPLINES])
+  const [selectedDisciplines, setSelectedDisciplines] = React.useState(draft?.selectedDisciplines ?? [...DISCIPLINES])
   const [quantity, setQuantity] = React.useState(20)
   const [shuffleOn, setShuffleOn] = React.useState(true)
-  const [timerOn, setTimerOn] = React.useState(true)
-  const [questions, setQuestions] = React.useState([])
-  const [answers, setAnswers] = React.useState({})
-  const [current, setCurrent] = React.useState(0)
+  const [timerOn, setTimerOn] = React.useState(draft?.timerOn ?? true)
+  const [questions, setQuestions] = React.useState(draft?.questions ?? [])
+  const [answers, setAnswers] = React.useState(draft?.answers ?? {})
+  const [current, setCurrent] = React.useState(draft?.current ?? 0)
   const [result, setResult] = React.useState(null)
   const [error, setError] = React.useState('')
   const [loadingMsg, setLoadingMsg] = React.useState('')
-  const [timeLeft, setTimeLeft] = React.useState(TIME_PER_QUESTION)
-  const [timerActive, setTimerActive] = React.useState(false)
-  const [history, setHistory] = React.useState(readHistory())
-  const [yearsUsed, setYearsUsed] = React.useState([])
-  const [deadline, setDeadline] = React.useState(null)
+  const [timeLeft, setTimeLeft] = React.useState(draft?.timeLeft ?? TIME_PER_QUESTION)
+  const [timerActive, setTimerActive] = React.useState(draft?.timerActive ?? false)
+  const [history, setHistory] = React.useState(readExamHistory)
+  const [yearsUsed, setYearsUsed] = React.useState(draft?.yearsUsed ?? [])
+  const [deadline, setDeadline] = React.useState(draft?.deadline ?? null)
   const [explanations, setExplanations] = React.useState({})
   const [explaining, setExplaining] = React.useState({})
-  const [examStartedAt, setExamStartedAt] = React.useState(null)
+  const [examStartedAt, setExamStartedAt] = React.useState(draft?.examStartedAt ?? null)
+  const finishing = React.useRef(false)
   const [, refreshFavorite] = React.useState(0)
 
   const explainError = async (item) => {
@@ -113,20 +108,33 @@ export default function Simulados({ onOpenChat }) {
   }
 
   // Timer por questão
+  function goToQuestion(index) {
+    if (index === current) return
+    setTimeLeft(TIME_PER_QUESTION)
+    setCurrent(index)
+  }
+
+  React.useEffect(() => {
+    if (mode === 'exam') saveExamDraft({
+      questions, answers, current, timerActive, timerOn, realExamMode,
+      deadline, examStartedAt, yearsUsed, selectedDisciplines
+    })
+  }, [mode, questions, answers, current, timerActive, timerOn, realExamMode,
+    deadline, examStartedAt, yearsUsed, selectedDisciplines])
+  React.useEffect(() => {
+    if (mode === 'exam' && !realExamMode) saveExamTimer(timeLeft)
+  }, [mode, realExamMode, timeLeft])
+
   React.useEffect(() => {
     if (mode !== 'exam' || realExamMode || !timerActive || !timerOn) return
     if (timeLeft <= 0) {
-      if (current < questions.length - 1) setCurrent((c) => c + 1)
-      else finish()
+      if (current < questions.length - 1) goToQuestion(current + 1)
+      else finishRef.current()
       return
     }
-    const id = setInterval(() => setTimeLeft((t) => t - 1), 1000)
-    return () => clearInterval(id)
+    const id = setTimeout(() => setTimeLeft((t) => t - 1), 1000)
+    return () => clearTimeout(id)
   }, [mode, realExamMode, timerActive, timerOn, timeLeft, current, questions.length])
-
-  React.useEffect(() => {
-    if (mode === 'exam') setTimeLeft(TIME_PER_QUESTION)
-  }, [current, mode])
 
   // Timer total para modo prova real
   React.useEffect(() => {
@@ -227,7 +235,7 @@ export default function Simulados({ onOpenChat }) {
       const mapped = filtered.map((q) => {
         const correctIdx = q.alternatives.findIndex((a) => a.isCorrect)
         const opts = q.alternatives.map((a) => a.text || '(imagem)')
-        const stem = [q.context, q.alternativesIntroduction].filter(Boolean).join('\n\n')
+        const stem = stripRenderedExamImages([q.context, q.alternativesIntroduction].filter(Boolean).join('\n\n'), q.files)
         return {
           id: `${q.year}-${q.index}`,
           year: q.year,
@@ -247,6 +255,8 @@ export default function Simulados({ onOpenChat }) {
       setQuestions(mapped)
       setAnswers({})
       setCurrent(0)
+      setTimeLeft(TIME_PER_QUESTION)
+      finishing.current = false
       setResult(null)
       setExplanations({})
       setTimerActive(!realExamMode && timerOn)
@@ -266,6 +276,9 @@ export default function Simulados({ onOpenChat }) {
   }
 
   const finish = React.useCallback(() => {
+    if (finishing.current) return
+    finishing.current = true
+    saveExamDraft(null)
     setTimerActive(false)
     setDeadline(null)
     const responses = questions.map((q) => ({
@@ -297,12 +310,13 @@ export default function Simulados({ onOpenChat }) {
       disciplines: realExamMode ? DISCIPLINES : selectedDisciplines
     }
     writeHistory(entry)
-    setHistory(readHistory())
+    setHistory(readExamHistory())
     setResult({ overall, areas, correctCount, total: responses.length, responses })
     setMode('result')
   }, [questions, answers, yearsUsed, selectedDisciplines, realExamMode, examStartedAt])
 
   const reset = () => {
+    saveExamDraft(null)
     setQuestions([])
     setAnswers({})
     setCurrent(0)
@@ -602,7 +616,7 @@ export default function Simulados({ onOpenChat }) {
               <div className="bar-smooth h-full bg-gradient-to-r from-neon-cyan to-neon-violet" style={{ width: `${((current + 1) / questions.length) * 100}%` }} />
             </div>
             <div className="mb-6 flex max-h-28 flex-wrap gap-1 overflow-y-auto scrollbar-thin pr-1" aria-label="Navegação das questões">
-              {questions.map((item, index) => <button key={item.id} onClick={() => setCurrent(index)} aria-label={`Ir para questão ${index + 1}${answers[item.id] !== undefined ? ', respondida' : ''}`}
+              {questions.map((item, index) => <button key={item.id} onClick={() => goToQuestion(index)} aria-label={`Ir para questão ${index + 1}${answers[item.id] !== undefined ? ', respondida' : ''}`}
                 className={`h-7 w-7 rounded-md text-[10px] font-semibold ${index === current ? 'bg-neon-cyan text-ink-950' : answers[item.id] !== undefined ? 'bg-neon-violet/25 text-neon-violet' : 'glass hover:bg-white/10'}`}>{index + 1}</button>)}
             </div>
 
@@ -655,7 +669,7 @@ export default function Simulados({ onOpenChat }) {
             </motion.div>
             <div className="flex items-center justify-between">
               <button
-                      onClick={() => { setTimerActive(false); setCurrent((c) => Math.max(0, c - 1)); setTimerActive(!realExamMode && timerOn) }}
+                      onClick={() => goToQuestion(current - 1)}
                 disabled={current === 0}
                 className="px-5 py-2.5 rounded-xl glass hover:bg-white/10 text-sm disabled:opacity-40"
               >
@@ -663,7 +677,7 @@ export default function Simulados({ onOpenChat }) {
               </button>
               {current < questions.length - 1 ? (
                 <button
-                  onClick={() => { setTimerActive(false); setCurrent((c) => c + 1); setTimerActive(!realExamMode && timerOn) }}
+                  onClick={() => goToQuestion(current + 1)}
                   className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-neon-cyan to-neon-violet text-ink-950 font-semibold text-sm"
                 >
                   Próxima →

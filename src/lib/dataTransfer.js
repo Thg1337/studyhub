@@ -1,4 +1,5 @@
-import { getProgress, getStudyEvents } from './progress.js'
+import { getProgress, getStudyEvents, normalizeDailyGoal } from './progress.js'
+import { EXAM_HISTORY_KEY, readExamHistory } from './examStorage.js'
 import { getFavorites } from './favorites.js'
 import { getAll as getSpaced } from './spaced.js'
 
@@ -7,7 +8,8 @@ const STORAGE_KEYS = {
   events: 'studyhub_study_events',
   favorites: 'studyhub_favorites',
   spaced: 'studyhub_sr',
-  flashcards: 'studyhub_flashcards'
+  flashcards: 'studyhub_flashcards',
+  examHistory: EXAM_HISTORY_KEY
 }
 
 function getFlashcards() {
@@ -25,7 +27,8 @@ export function exportStudyData() {
     events: getStudyEvents(),
     favorites: getFavorites(),
     spaced: getSpaced(),
-    flashcards: getFlashcards()
+    flashcards: getFlashcards(),
+    examHistory: readExamHistory()
   }
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })
   const url = URL.createObjectURL(blob)
@@ -124,19 +127,39 @@ function normalizeFlashcard(item) {
   }
 }
 
+function normalizeExamHistory(item) {
+  if (!isObject(item) || !Number.isFinite(item.overall) || item.overall < 0 || item.overall > 1000 ||
+      !Number.isInteger(item.total) || item.total < 1 || item.total > 3000 ||
+      !Array.isArray(item.disciplines) || item.disciplines.length > 4) throw new Error('Histórico de simulado inválido.')
+  const result = {
+    date: text(item.date, 80, true),
+    year: text(typeof item.year === 'number' ? String(item.year) : item.year, 200),
+    overall: item.overall,
+    total: item.total,
+    disciplines: item.disciplines.map((name) => text(name, 120, true))
+  }
+  optionalText(item, 'method', 40, result)
+  if (item.correctCount !== undefined) {
+    if (!Number.isInteger(item.correctCount) || item.correctCount < 0 || item.correctCount > item.total) throw new Error('Contagem de acertos inválida.')
+    result.correctCount = item.correctCount
+  }
+  return result
+}
+
 function normalizeImport(data) {
   if (!isObject(data) || data.version !== 1 || typeof data.exportedAt !== 'string' ||
     Number.isNaN(Date.parse(data.exportedAt)) || new Date(data.exportedAt).toISOString() !== data.exportedAt ||
     !isObject(data.progress) || !isObject(data.progress.days) ||
     !Array.isArray(data.events) || !Array.isArray(data.favorites) || !Array.isArray(data.spaced) ||
-    (data.flashcards !== undefined && !Array.isArray(data.flashcards))) {
+    (data.flashcards !== undefined && !Array.isArray(data.flashcards)) ||
+    (data.examHistory !== undefined && !Array.isArray(data.examHistory))) {
     throw new Error('Arquivo inválido ou versão não suportada.')
   }
   const { goal, days } = data.progress
   const dayEntries = Object.entries(days)
-  if (!Number.isInteger(goal) || goal < 1 || goal > 200 || dayEntries.length > 365 ||
+  if (!Number.isFinite(goal) || goal < 1 || goal > 200 || dayEntries.length > 365 ||
     data.events.length > 3000 || data.favorites.length > 100 || data.spaced.length > 300 ||
-    (data.flashcards?.length || 0) > 200) {
+    (data.flashcards?.length || 0) > 200 || (data.examHistory?.length || 0) > 20) {
     throw new Error('Dados acima do limite permitido.')
   }
   const safeDays = Object.fromEntries(dayEntries.map(([date, count]) => {
@@ -153,11 +176,12 @@ function normalizeImport(data) {
     return { at: event.at, subject, correct: event.correct, source: text(event.source, 60, true), durationMs: event.durationMs }
   })
   return {
-    progress: { goal, days: safeDays },
+    progress: { goal: normalizeDailyGoal(goal), days: safeDays },
     events,
     favorites: data.favorites.map((item) => normalizeQuestion(item)),
     spaced: data.spaced.map((item) => normalizeQuestion(item, true)),
-    ...(data.flashcards === undefined ? {} : { flashcards: data.flashcards.map(normalizeFlashcard) })
+    ...(data.flashcards === undefined ? {} : { flashcards: data.flashcards.map(normalizeFlashcard) }),
+    ...(data.examHistory === undefined ? {} : { examHistory: data.examHistory.map(normalizeExamHistory) })
   }
 }
 

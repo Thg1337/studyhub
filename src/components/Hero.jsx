@@ -97,7 +97,7 @@ export default function Hero() {
               Começar agora <ArrowRight className="h-4 w-4" />
             </Link>
             <Link to="/quiz/Matemática" className="btn btn-ghost w-full sm:w-auto">
-              <Play className="h-3.5 w-3.5" /> Ver uma questão
+              <Play className="h-3.5 w-3.5" /> Praticar Matemática
             </Link>
           </div>
 
