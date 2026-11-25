@@ -34,7 +34,7 @@ Este plano foi preparado para execução em etapas pequenas. Nenhuma alteração
 
 1. Criar testes para importação/exportação e limites de entrada.
 2. Criar testes de acessibilidade para navegação, modais e formulários.
-3. Criar um checklist de verificação visual para desktop, celular e Firefox.
+3. Criar um checklist de verificação visual para desktop, celular e Firefox. Roteiro criado em [Checklist visual](CHECKLIST_VISUAL.md); execução pendente.
 4. Documentar variáveis de ambiente e comportamento das APIs. Concluído em [APIs e variáveis de ambiente](APIS_E_AMBIENTE.md).
 
 ## Como executar sem esgotar tokens
