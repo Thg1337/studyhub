@@ -3,7 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { AlertTriangle, Trash2, X, Flame, Layers } from 'lucide-react'
 import { askAI } from '../lib/ai.js'
 import MathText from '../components/MathText.jsx'
-import { getAll, getDue, recordResult } from '../lib/spaced.js'
+import { getAll, recordResult } from '../lib/spaced.js'
 import { getProgress, getStreak, todayCount, recordStudy } from '../lib/progress.js'
 import useModalFocus from '../lib/useModalFocus.js'
 
@@ -24,17 +24,24 @@ export default function Flashcards() {
   const [error, setError] = React.useState('')
   const [onlyDue, setOnlyDue] = React.useState(false)
   const [progress, setProgress] = React.useState(getProgress)
+  const [schedule, setSchedule] = React.useState(getAll)
   const [deleteId, setDeleteId] = React.useState(null)
   const cancelRef = React.useRef(null)
   const deleteDialogRef = React.useRef(null)
   useModalFocus(Boolean(deleteId), deleteDialogRef, cancelRef, () => setDeleteId(null))
   const cardToDelete = cards.find((item) => item.id === deleteId)
-  const scheduledIds = new Set(getAll().map((item) => item.id))
-  const dueIds = new Set([...getDue().map((item) => item.id), ...cards.filter((item) => !scheduledIds.has(item.id)).map((item) => item.id)])
-  const visible = onlyDue ? cards.filter((card) => dueIds.has(card.id)) : cards
+  const dueIds = React.useMemo(() => {
+    const scheduled = new Map(schedule.map((item) => [item.id, item]))
+    const now = Date.now()
+    return new Set(cards.filter((item) => {
+      const review = scheduled.get(item.id)
+      return !review || review.nextReview <= now
+    }).map((item) => item.id))
+  }, [cards, schedule, onlyDue])
+  const visible = React.useMemo(() => onlyDue ? cards.filter((item) => dueIds.has(item.id)) : cards, [cards, dueIds, onlyDue])
   const card = visible[Math.min(current, visible.length - 1)]
   const streak = getStreak(progress)
-  const dueCardCount = cards.filter((item) => dueIds.has(item.id)).length
+  const dueCardCount = dueIds.size
 
   const save = (next) => {
     setCards(next)
@@ -71,6 +78,7 @@ export default function Flashcards() {
   const rate = (rating) => {
     const remembered = rating !== 'again'
     recordResult({ id: card.id, topic: card.topic, front: card.front, back: card.back, source: 'flashcard' }, remembered, rating)
+    setSchedule(getAll())
     setProgress(recordStudy())
     setFlipped(false)
     if (onlyDue) setCurrent((n) => Math.min(n, Math.max(0, visible.length - 2)))
