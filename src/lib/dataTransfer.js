@@ -6,7 +6,15 @@ const STORAGE_KEYS = {
   progress: 'studyhub_daily_progress',
   events: 'studyhub_study_events',
   favorites: 'studyhub_favorites',
-  spaced: 'studyhub_sr'
+  spaced: 'studyhub_sr',
+  flashcards: 'studyhub_flashcards'
+}
+
+function getFlashcards() {
+  try {
+    const cards = JSON.parse(localStorage.getItem(STORAGE_KEYS.flashcards) || '[]')
+    return Array.isArray(cards) ? cards : []
+  } catch { return [] }
 }
 
 export function exportStudyData() {
@@ -16,7 +24,8 @@ export function exportStudyData() {
     progress: getProgress(),
     events: getStudyEvents(),
     favorites: getFavorites(),
-    spaced: getSpaced()
+    spaced: getSpaced(),
+    flashcards: getFlashcards()
   }
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })
   const url = URL.createObjectURL(blob)
@@ -105,17 +114,29 @@ function normalizeQuestion(item, scheduled = false) {
   return result
 }
 
+function normalizeFlashcard(item) {
+  if (!isObject(item)) throw new Error('Flashcard inválido no arquivo.')
+  return {
+    id: text(item.id, 200, true),
+    topic: text(item.topic, 120, true),
+    front: text(item.front, 4000, true),
+    back: text(item.back, 8000, true)
+  }
+}
+
 function normalizeImport(data) {
   if (!isObject(data) || data.version !== 1 || typeof data.exportedAt !== 'string' ||
     Number.isNaN(Date.parse(data.exportedAt)) || new Date(data.exportedAt).toISOString() !== data.exportedAt ||
     !isObject(data.progress) || !isObject(data.progress.days) ||
-    !Array.isArray(data.events) || !Array.isArray(data.favorites) || !Array.isArray(data.spaced)) {
+    !Array.isArray(data.events) || !Array.isArray(data.favorites) || !Array.isArray(data.spaced) ||
+    (data.flashcards !== undefined && !Array.isArray(data.flashcards))) {
     throw new Error('Arquivo inválido ou versão não suportada.')
   }
   const { goal, days } = data.progress
   const dayEntries = Object.entries(days)
   if (!Number.isInteger(goal) || goal < 1 || goal > 200 || dayEntries.length > 365 ||
-    data.events.length > 3000 || data.favorites.length > 100 || data.spaced.length > 300) {
+    data.events.length > 3000 || data.favorites.length > 100 || data.spaced.length > 300 ||
+    (data.flashcards?.length || 0) > 200) {
     throw new Error('Dados acima do limite permitido.')
   }
   const safeDays = Object.fromEntries(dayEntries.map(([date, count]) => {
@@ -135,7 +156,8 @@ function normalizeImport(data) {
     progress: { goal, days: safeDays },
     events,
     favorites: data.favorites.map((item) => normalizeQuestion(item)),
-    spaced: data.spaced.map((item) => normalizeQuestion(item, true))
+    spaced: data.spaced.map((item) => normalizeQuestion(item, true)),
+    ...(data.flashcards === undefined ? {} : { flashcards: data.flashcards.map(normalizeFlashcard) })
   }
 }
 
@@ -152,7 +174,9 @@ export async function importStudyData(file) {
     throw new Error('Arquivo JSON inválido ou ilegível.')
   }
   const normalized = normalizeImport(data)
-  const entries = Object.entries(STORAGE_KEYS).map(([name, key]) => [key, JSON.stringify(normalized[name])])
+  const entries = Object.entries(STORAGE_KEYS)
+    .filter(([name]) => normalized[name] !== undefined)
+    .map(([name, key]) => [key, JSON.stringify(normalized[name])])
   let previous
   try {
     previous = entries.map(([key]) => [key, localStorage.getItem(key)])

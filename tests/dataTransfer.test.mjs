@@ -1,8 +1,10 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { importStudyData } from '../src/lib/dataTransfer.js'
+import { exportStudyData, importStudyData } from '../src/lib/dataTransfer.js'
 
 const keys = ['studyhub_daily_progress', 'studyhub_study_events', 'studyhub_favorites', 'studyhub_sr']
+const flashcardsKey = 'studyhub_flashcards'
+const card = { id: 'card-new', topic: 'Biologia', front: 'O que é fotossíntese?', back: 'Produção de energia pela planta.' }
 
 function backup(changes = {}) {
   return {
@@ -41,6 +43,38 @@ test('importa um backup válido e descarta campos inesperados', async () => {
   assert.equal(JSON.parse(values.get(keys[3]))[0].front, '2 + 2?')
 })
 
+test('exporta e restaura cartões ainda não revisados', async () => {
+  storage({ [flashcardsKey]: JSON.stringify([card]) })
+  const originalDocument = globalThis.document
+  const originalCreate = URL.createObjectURL
+  const originalRevoke = URL.revokeObjectURL
+  let blob
+  globalThis.document = {
+    createElement: () => ({ click() {}, remove() {} }),
+    body: { appendChild() {} }
+  }
+  URL.createObjectURL = (value) => { blob = value; return 'blob:test' }
+  URL.revokeObjectURL = () => {}
+  try {
+    exportStudyData()
+    const data = JSON.parse(await blob.text())
+    assert.deepEqual(data.flashcards, [card])
+    const values = storage()
+    await importStudyData(file(data))
+    assert.deepEqual(JSON.parse(values.get(flashcardsKey)), [card])
+  } finally {
+    globalThis.document = originalDocument
+    URL.createObjectURL = originalCreate
+    URL.revokeObjectURL = originalRevoke
+  }
+})
+
+test('backup antigo preserva cartões existentes', async () => {
+  const values = storage({ [flashcardsKey]: JSON.stringify([card]) })
+  await importStudyData(file(backup()))
+  assert.deepEqual(JSON.parse(values.get(flashcardsKey)), [card])
+})
+
 test('aceita uma questão de simulado cujo enunciado está em imagem', async () => {
   const values = storage()
   const imageQuestion = { id: 'sim-1', source: 'simulado', year: 2025, q: '', files: ['https://example.com/questao.png'], altFiles: [null, null], opts: ['A', 'B'], correct: 0 }
@@ -69,20 +103,23 @@ test('recusa dados incompletos, datas inválidas e texto excessivo sem gravar pa
     backup({ favorites: [{ id: 'quiz-1', source: 'quiz', q: 'x'.repeat(10001), opts: ['a', 'b'], correct: 0 }] }),
     backup({ favorites: [{ id: 'quiz-1', source: 'quiz', q: 'Questão', opts: ['a', 'b'], correct: 2 }] }),
     backup({ spaced: [{ ...backup().spaced[0], nextReview: 'amanhã' }] }),
-    backup({ spaced: Array.from({ length: 301 }, () => backup().spaced[0]) })
+    backup({ spaced: Array.from({ length: 301 }, () => backup().spaced[0]) }),
+    backup({ flashcards: [{ ...card, front: '' }] }),
+    backup({ flashcards: Array.from({ length: 201 }, () => card) })
   ]
   for (const data of badCases) await assert.rejects(importStudyData(file(data)))
   assert.deepEqual([...values.entries()], [[keys[0], 'original']])
 })
 
 test('preserva os dados anteriores se a gravação falhar', async () => {
-  const values = storage(Object.fromEntries(keys.map((key) => [key, `old:${key}`])))
+  const allKeys = [...keys, flashcardsKey]
+  const values = storage(Object.fromEntries(allKeys.map((key) => [key, `old:${key}`])))
   const originalSetItem = globalThis.localStorage.setItem
   let failed = false
   globalThis.localStorage.setItem = (key, value) => {
-    if (key === keys[2] && !failed) { failed = true; throw new Error('quota') }
+    if (key === flashcardsKey && !failed) { failed = true; throw new Error('quota') }
     originalSetItem(key, value)
   }
-  await assert.rejects(importStudyData(file(backup())), /salvar/)
-  assert.deepEqual([...values.entries()], keys.map((key) => [key, `old:${key}`]))
+  await assert.rejects(importStudyData(file(backup({ flashcards: [card] }))), /salvar/)
+  assert.deepEqual([...values.entries()], allKeys.map((key) => [key, `old:${key}`]))
 })
