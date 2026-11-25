@@ -47,7 +47,10 @@ export default async function handler(req, res) {
     res.status(400).json({ error: 'Modelo não permitido' })
     return
   }
-  const temperature = Math.min(2, Math.max(0, Number(body.temperature) || 0.7))
+  const requestedTemperature = body.temperature == null ? 0.7 : Number(body.temperature)
+  const temperature = Number.isFinite(requestedTemperature)
+    ? Math.min(2, Math.max(0, requestedTemperature))
+    : 0.7
   const max_tokens = Math.min(3000, Math.max(1, Number(body.max_tokens) || 1024))
 
   const controller = new AbortController()

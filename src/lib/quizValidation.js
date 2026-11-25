@@ -24,5 +24,7 @@ export function validateQuestion(question) {
   }
   if (expected === null) return true
   const matches = opts.map(numericOption).map((value) => value !== null && Math.abs(value - expected) < 1e-9)
-  return matches.filter(Boolean).length === 1 && matches[question.correct] === true
+  const statedResult = String(question.explain || '').match(/(?:resposta|resultado)\s*(?:é|:)\s*([\d.,]+)\s*(?:m[³3]|metros? c[uú]bicos?)?/i)
+  return matches.filter(Boolean).length === 1 && matches[question.correct] === true &&
+    (!statedResult || Math.abs(number(statedResult[1]) - expected) < 1e-9)
 }

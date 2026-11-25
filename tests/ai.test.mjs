@@ -2,6 +2,28 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { askAI, cleanAIResponse } from '../src/lib/ai.js'
 import { serviceHttpError, serviceNetworkError } from '../src/lib/serviceErrors.js'
+import chatHandler from '../api/chat.js'
+
+test('a revisão de questões envia temperatura zero ao provedor', async () => {
+  const originalFetch = globalThis.fetch
+  const originalKey = process.env.GROQ_API_KEY
+  process.env.GROQ_API_KEY = 'test-key'
+  let payload
+  globalThis.fetch = async (_url, init) => {
+    payload = JSON.parse(init.body)
+    return { ok: true, json: async () => ({ choices: [] }) }
+  }
+  const response = { status(code) { this.code = code; return this }, json(value) { this.body = value } }
+  try {
+    await chatHandler({ method: 'POST', headers: { origin: 'https://studyhub.test', host: 'studyhub.test', 'x-forwarded-proto': 'https' }, body: { messages: [{ role: 'user', content: 'Confira o gabarito' }], temperature: 0 } }, response)
+    assert.equal(response.code, 200)
+    assert.equal(payload.temperature, 0)
+  } finally {
+    globalThis.fetch = originalFetch
+    if (originalKey === undefined) delete process.env.GROQ_API_KEY
+    else process.env.GROQ_API_KEY = originalKey
+  }
+})
 
 test('distingue limite, rede e indisponibilidade dos vídeos', () => {
   assert.match(serviceHttpError('vídeos', 429).message, /Limite de uso/)
