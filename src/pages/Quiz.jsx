@@ -390,9 +390,10 @@ export default function Quiz({ onOpenChat }) {
                 let cls = 'glass hover:bg-white/10'
                 if (show) {
                   // A alternativa marcada pelo aluno deve sempre indicar o resultado.
-                  // A correta só fica verde quando não foi a escolhida por engano.
+                  // A correta só fica verde quando foi a escolhida pelo aluno.
                   if (selected && !isCorrect) cls = 'bg-rose-500/20 border-rose-400/60'
-                  else if (isCorrect) cls = 'bg-emerald-500/20 border-emerald-400/60'
+                  else if (isCorrect && selected) cls = 'bg-emerald-500/20 border-emerald-400/60'
+                  else if (isCorrect) cls = 'bg-neon-cyan/10 border-neon-cyan/50'
                   else cls = 'glass opacity-50'
                 } else if (selected) {
                   cls = 'bg-neon-cyan/20 border-neon-cyan/60'
