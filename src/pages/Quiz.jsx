@@ -26,6 +26,11 @@ function readDraft() {
   } catch { return null }
 }
 
+function hasDistinctOptions(options) {
+  const normalized = options.map((option) => String(option).trim().replace(/\s+/g, ' ').toLocaleLowerCase())
+  return new Set(normalized).size === normalized.length
+}
+
 function parseQuestions(text) {
   // Remove cercas de código markdown se houver
   let cleaned = text.trim()
@@ -57,7 +62,7 @@ function parseQuestions(text) {
         explain: String(q.explain || q.explanation || '').trim()
       }
     })
-    .filter((q) => q && q.q && q.opts.length === 5)
+    .filter((q) => q && q.q && q.opts.length === 5 && hasDistinctOptions(q.opts))
 }
 
 export default function Quiz({ onOpenChat }) {
@@ -384,8 +389,10 @@ export default function Quiz({ onOpenChat }) {
                 const show = revealed[q.id]
                 let cls = 'glass hover:bg-white/10'
                 if (show) {
-                  if (isCorrect) cls = 'bg-emerald-500/20 border-emerald-400/60'
-                  else if (selected) cls = 'bg-rose-500/20 border-rose-400/60'
+                  // A alternativa marcada pelo aluno deve sempre indicar o resultado.
+                  // A correta só fica verde quando não foi a escolhida por engano.
+                  if (selected && !isCorrect) cls = 'bg-rose-500/20 border-rose-400/60'
+                  else if (isCorrect) cls = 'bg-emerald-500/20 border-emerald-400/60'
                   else cls = 'glass opacity-50'
                 } else if (selected) {
                   cls = 'bg-neon-cyan/20 border-neon-cyan/60'

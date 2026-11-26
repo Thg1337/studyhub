@@ -31,6 +31,8 @@ export function batchQuestionsForReview(questions, maxLength = 4000) {
 export function validateQuestion(question) {
   const prompt = question.q || ''
   const opts = question.opts || []
+  const normalizedOptions = opts.map((option) => String(option).trim().replace(/\s+/g, ' ').toLocaleLowerCase())
+  if (normalizedOptions.length !== 5 || new Set(normalizedOptions).size !== normalizedOptions.length) return false
   if (/qual (?:dos? )?tanques? (?:tem|possui) maior volume/i.test(prompt) && !/\d/.test(prompt)) return false
 
   let expected = null
