@@ -6,7 +6,8 @@ import { toggleFavorite, isFavorite, updateFavoriteAnswer } from '../lib/favorit
 import { recordResult, getDue } from '../lib/spaced.js'
 import { recordStudy, recordAnswer, getProgress, getStreak, setDailyGoal, todayCount } from '../lib/progress.js'
 import { askAI } from '../lib/ai.js'
-import { batchQuestionsForReview, distinctQuestions, validateQuestion } from '../lib/quizValidation.js'
+import { generateVerifiedQuiz } from '../lib/quizGeneration.js'
+import { restoreQuizDraft, validateQuestion } from '../lib/quizValidation.js'
 import AIResponse from '../components/AIResponse.jsx'
 import { safeImageUrl } from '../lib/safeUrl.js'
 import MathText from '../components/MathText.jsx'
@@ -21,48 +22,8 @@ const MODE_MOTION = {
 }
 function readDraft() {
   try {
-    const draft = JSON.parse(localStorage.getItem(DRAFT_KEY) || 'null')
-    return Array.isArray(draft?.questions) && draft.questions.length ? draft : null
+    return restoreQuizDraft(JSON.parse(localStorage.getItem(DRAFT_KEY) || 'null'))
   } catch { return null }
-}
-
-function hasDistinctOptions(options) {
-  const normalized = options.map((option) => String(option).trim().replace(/\s+/g, ' ').toLocaleLowerCase())
-  return new Set(normalized).size === normalized.length
-}
-
-function parseQuestions(text) {
-  // Remove cercas de código markdown se houver
-  let cleaned = text.trim()
-  cleaned = cleaned.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/```\s*$/i, '').trim()
-  // Tenta extrair o array JSON
-  const start = cleaned.indexOf('[')
-  const end = cleaned.lastIndexOf(']')
-  if (start !== -1 && end !== -1) cleaned = cleaned.slice(start, end + 1)
-  const arr = JSON.parse(cleaned)
-  if (!Array.isArray(arr)) throw new Error('Resposta não é um array')
-  return arr
-    .map((q, i) => {
-      const opts = Array.isArray(q.opts) ? q.opts : Array.isArray(q.options) ? q.options : []
-      const correct = Number.isInteger(q.correct) ? q.correct : q.answer
-      if (!Number.isInteger(correct) || correct < 0 || correct >= opts.length) return null
-      // Embaralha as alternativas para que a correta não fique sempre em "A"
-      const order = opts.map((_, idx) => idx)
-      for (let j = order.length - 1; j > 0; j--) {
-        const k = Math.floor(Math.random() * (j + 1))
-        ;[order[j], order[k]] = [order[k], order[j]]
-      }
-      const shuffledOpts = order.map((idx) => String(opts[idx]).trim())
-      const newCorrect = order.indexOf(correct)
-      return {
-        id: i + 1,
-        q: String(q.q || q.question || '').trim(),
-        opts: shuffledOpts,
-        correct: newCorrect,
-        explain: String(q.explain || q.explanation || '').trim()
-      }
-    })
-    .filter((q) => q && q.q && q.opts.length === 5 && hasDistinctOptions(q.opts))
 }
 
 export default function Quiz({ onOpenChat }) {
@@ -86,10 +47,7 @@ export default function Quiz({ onOpenChat }) {
   const [progress, setProgress] = React.useState(getProgress)
   const [sessionId, setSessionId] = React.useState('')
   const [questionStartedAt, setQuestionStartedAt] = React.useState(Date.now)
-  const [draft, setDraft] = React.useState(() => {
-    const saved = readDraft()
-    return saved?.questions?.every(validateQuestion) ? saved : null
-  })
+  const [draft, setDraft] = React.useState(readDraft)
   const [, refreshFavorite] = React.useState(0)
 
   const questionContext = (item, selected) => `Questão: ${item.q}\nAlternativas: ${item.opts.map((o, i) => `${String.fromCharCode(65 + i)}) ${o}`).join(' | ')}\nResposta do aluno: ${selected === undefined ? 'não respondida' : `${String.fromCharCode(65 + selected)}) ${item.opts[selected]}`}\nGabarito: ${String.fromCharCode(65 + item.correct)}) ${item.opts[item.correct]}\nExplicação existente: ${item.explain || 'não fornecida'}`
@@ -115,40 +73,20 @@ export default function Quiz({ onOpenChat }) {
       setError('Informe um assunto.')
       return
     }
+    if (t.length > 300) {
+      setError('Use até 300 caracteres para descrever o assunto.')
+      return
+    }
     setError('')
     setMode('loading')
-    setLoadingMsg('Gerando questões com IA...')
     try {
-      const messages = [
-        {
-          role: 'system',
-          content:
-            'Você é um gerador de questões de múltipla escolha no estilo ENEM. Responda APENAS com um array JSON válido, sem texto extra, sem markdown. Cada item: {"q":"enunciado","opts":["A","B","C","D","E"],"correct":0,"explain":"explicação curta"}. Gere questões completas, com todos os dados necessários no enunciado, 5 alternativas distintas e uma única resposta correta. Varie os conceitos e exemplos entre as questões; não repita a mesma distinção de palavras com outro enunciado. Resolva cada conta antes de definir o gabarito. Use fórmulas entre $...$ e não use tabelas.'
-        },
-        {
-          role: 'user',
-          content: `Gere ${count} questões de múltipla escolha (5 alternativas) sobre: ${t}. Retorne somente o JSON.`
-        }
-      ]
-
-      const text = await askAI(messages, { temperature: 0.8, max_tokens: Math.min(3000, 1200 + count * 160), format: 'json' })
-      const candidates = distinctQuestions(parseQuestions(text).filter(validateQuestion))
-      if (candidates.length === 0) throw new Error('A IA não retornou questões confiáveis. Tente novamente.')
-      setLoadingMsg('Conferindo gabaritos e enunciados...')
-      const qs = []
-      for (const batch of batchQuestionsForReview(candidates)) {
-        const audit = await askAI([
-          { role: 'system', content: 'Você é revisor independente de questões. Resolva cada uma sem confiar no gabarito nem na explicação. Retorne APENAS um array JSON com os índices (base zero) das questões que possuem todos os dados necessários, uma única resposta correta e gabarito e explicação matematicamente coerentes. Na dúvida, exclua a questão.' },
-          { role: 'user', content: JSON.stringify(batch.map(({ q, opts, correct, explain }) => ({ q, opts, correct, explain }))) }
-        ], { temperature: 0, max_tokens: 500, format: 'json' })
-        const approved = JSON.parse(audit.replace(/^```json\s*|^```\s*|```\s*$/gi, '').trim())
-        if (!Array.isArray(approved) || !approved.every((index) => Number.isInteger(index) && index >= 0 && index < batch.length)) throw new Error('Não foi possível conferir as questões. Tente novamente.')
-        qs.push(...[...new Set(approved)].map((index) => batch[index]))
+      const verified = await generateVerifiedQuiz(t, count, setLoadingMsg)
+      if (verified.length < count) {
+        toast(`Foi possível confirmar ${verified.length} de ${count} questões. O quiz inclui apenas as confirmadas.`, 'info')
+      } else {
+        toast('Questões geradas com sucesso!', 'success')
       }
-      const uniqueQuestions = distinctQuestions(qs)
-      if (uniqueQuestions.length === 0) throw new Error('A IA não retornou questões confiáveis. Tente novamente.')
-      toast('Questões geradas com sucesso!', 'success')
-      setQuestions(uniqueQuestions)
+      setQuestions(verified)
       setSessionId(crypto.randomUUID())
       setReviewing(false)
       setExplanations({})
@@ -245,6 +183,7 @@ export default function Quiz({ onOpenChat }) {
               <input
                 id="quiz-topic"
                 value={topic}
+                maxLength={300}
                 onChange={(e) => setTopic(e.target.value)}
                 placeholder="Ex: Fotossíntese, Revolução Francesa, Equações do 2º grau..."
                 className="w-full glass rounded-xl px-4 py-3 bg-transparent outline-none"
@@ -265,7 +204,7 @@ export default function Quiz({ onOpenChat }) {
                   min={1}
                   max={15}
                   value={count}
-                  onChange={(e) => setCount(Math.max(1, Math.min(15, Number(e.target.value) || 1)))}
+                  onChange={(e) => setCount(Math.max(1, Math.min(15, Math.trunc(Number(e.target.value)) || 1)))}
                   className="w-24 glass rounded-xl px-4 py-3 bg-transparent outline-none"
                 />
                 <div className="flex gap-2 flex-wrap">

@@ -1,7 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { stripRenderedExamImages } from '../src/lib/examStorage.js'
-import { batchQuestionsForReview } from '../src/lib/quizValidation.js'
+import { batchQuestionsForReview, questionForReview } from '../src/lib/quizValidation.js'
 import { reserveChatRequest } from '../api/_usageBudget.js'
 
 test('remove a marcação redundante do enunciado e preserva o texto', () => {
@@ -17,7 +17,7 @@ test('divide a revisão sem exceder o limite de caracteres da API', () => {
   const batches = batchQuestionsForReview(questions)
   assert.ok(batches.length > 1)
   assert.deepEqual(batches.flat(), questions)
-  for (const batch of batches) assert.ok(JSON.stringify(batch.map(({ id, ...question }) => question)).length <= 4000)
+  for (const batch of batches) assert.ok(JSON.stringify(batch.map(questionForReview)).length <= 4000)
 })
 
 test('reserva apenas a cota agregada e trata indisponibilidade', async (t) => {
