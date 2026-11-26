@@ -6,7 +6,7 @@ import { toggleFavorite, isFavorite, updateFavoriteAnswer } from '../lib/favorit
 import { recordResult, getDue } from '../lib/spaced.js'
 import { recordStudy, recordAnswer, getProgress, getStreak, setDailyGoal, todayCount } from '../lib/progress.js'
 import { askAI } from '../lib/ai.js'
-import { batchQuestionsForReview, validateQuestion } from '../lib/quizValidation.js'
+import { batchQuestionsForReview, distinctQuestions, validateQuestion } from '../lib/quizValidation.js'
 import AIResponse from '../components/AIResponse.jsx'
 import { safeImageUrl } from '../lib/safeUrl.js'
 import MathText from '../components/MathText.jsx'
@@ -123,7 +123,7 @@ export default function Quiz({ onOpenChat }) {
         {
           role: 'system',
           content:
-            'Você é um gerador de questões de múltipla escolha no estilo ENEM. Responda APENAS com um array JSON válido, sem texto extra, sem markdown. Cada item: {"q":"enunciado","opts":["A","B","C","D","E"],"correct":0,"explain":"explicação curta"}. Gere questões completas, com todos os dados necessários no enunciado, 5 alternativas distintas e uma única resposta correta. Resolva cada conta antes de definir o gabarito. Use fórmulas entre $...$ e não use tabelas.'
+            'Você é um gerador de questões de múltipla escolha no estilo ENEM. Responda APENAS com um array JSON válido, sem texto extra, sem markdown. Cada item: {"q":"enunciado","opts":["A","B","C","D","E"],"correct":0,"explain":"explicação curta"}. Gere questões completas, com todos os dados necessários no enunciado, 5 alternativas distintas e uma única resposta correta. Varie os conceitos e exemplos entre as questões; não repita a mesma distinção de palavras com outro enunciado. Resolva cada conta antes de definir o gabarito. Use fórmulas entre $...$ e não use tabelas.'
         },
         {
           role: 'user',
@@ -132,7 +132,7 @@ export default function Quiz({ onOpenChat }) {
       ]
 
       const text = await askAI(messages, { temperature: 0.8, max_tokens: Math.min(3000, 1200 + count * 160), format: 'json' })
-      const candidates = parseQuestions(text).filter(validateQuestion)
+      const candidates = distinctQuestions(parseQuestions(text).filter(validateQuestion))
       if (candidates.length === 0) throw new Error('A IA não retornou questões confiáveis. Tente novamente.')
       setLoadingMsg('Conferindo gabaritos e enunciados...')
       const qs = []
@@ -145,9 +145,10 @@ export default function Quiz({ onOpenChat }) {
         if (!Array.isArray(approved) || !approved.every((index) => Number.isInteger(index) && index >= 0 && index < batch.length)) throw new Error('Não foi possível conferir as questões. Tente novamente.')
         qs.push(...[...new Set(approved)].map((index) => batch[index]))
       }
-      if (qs.length === 0) throw new Error('A IA não retornou questões confiáveis. Tente novamente.')
+      const uniqueQuestions = distinctQuestions(qs)
+      if (uniqueQuestions.length === 0) throw new Error('A IA não retornou questões confiáveis. Tente novamente.')
       toast('Questões geradas com sucesso!', 'success')
-      setQuestions(qs)
+      setQuestions(uniqueQuestions)
       setSessionId(crypto.randomUUID())
       setReviewing(false)
       setExplanations({})

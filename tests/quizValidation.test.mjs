@@ -1,6 +1,15 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { validateQuestion } from '../src/lib/quizValidation.js'
+import { distinctQuestions, validateQuestion } from '../src/lib/quizValidation.js'
+
+test('remove perguntas reescritas sobre o mesmo par de palavras', () => {
+  const questions = [
+    { q: 'Qual afirmação distingue corretamente “mal” e “mau”?' },
+    { q: 'Qual é a principal diferença entre ”mal” e ”mau”?' },
+    { q: 'Complete uma frase usando “mas” e “mais”.' }
+  ]
+  assert.deepEqual(distinctQuestions(questions), [questions[0], questions[2]])
+})
 
 test('rejeita gabaritos errados de conversão de litros', () => {
   assert.equal(validateQuestion({ q: 'Converta 2.000 litros para metros cúbicos.', opts: ['0,2 m³', '2 m³', '20 m³', '200 m³', '2000 m³'], correct: 0 }), false)

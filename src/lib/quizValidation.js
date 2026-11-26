@@ -7,6 +7,26 @@ const numericOption = (value) => {
   return match ? number(match[1]) : null
 }
 
+const normalizeText = (value) => String(value).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase().replace(/[^a-z0-9]+/g, ' ').trim()
+
+export function distinctQuestions(questions) {
+  const seenPrompts = new Set()
+  const seenQuotedTerms = new Set()
+  return questions.filter((question) => {
+    const prompt = normalizeText(question.q)
+    const quoted = [...String(question.q).matchAll(/[“”"'‘’]([^“”"'‘’]+)[“”"'‘’]/g)]
+      .map((match) => normalizeText(match[1])).filter(Boolean)
+    // Questões que pedem a mesma distinção de palavras são repetições,
+    // mesmo quando a IA reescreve o enunciado e troca as alternativas.
+    const terms = quoted.length >= 2 && quoted.every((term) => term.split(' ').length <= 2)
+      ? [...new Set(quoted)].sort().join('|') : ''
+    if (!prompt || seenPrompts.has(prompt) || (terms && seenQuotedTerms.has(terms))) return false
+    seenPrompts.add(prompt)
+    if (terms) seenQuotedTerms.add(terms)
+    return true
+  })
+}
+
 export function batchQuestionsForReview(questions, maxLength = 4000) {
   const batches = []
   let batch = []
