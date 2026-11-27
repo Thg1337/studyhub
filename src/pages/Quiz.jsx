@@ -3,36 +3,32 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useParams, useSearchParams } from 'react-router-dom'
 import { Brain, Sparkles, Loader2, CheckCircle2, XCircle, RotateCcw, Play, Target, Star } from 'lucide-react'
 import { toggleFavorite, isFavorite, updateFavoriteAnswer } from '../lib/favorites.js'
-import { recordResult, getDue } from '../lib/spaced.js'
+import { recordResult } from '../lib/spaced.js'
 import { recordStudy, recordAnswer, getProgress, getStreak, setDailyGoal, todayCount } from '../lib/progress.js'
 import { askAI } from '../lib/ai.js'
 import { generateVerifiedQuiz } from '../lib/quizGeneration.js'
-import { restoreQuizDraft, validateQuestion } from '../lib/quizValidation.js'
+import { DRAFT_KEY, loadTopicQuestions, missedQuestions, readQuizDraft, reviewQuestions, studySubjects, topicsForSubject } from '../lib/studySession.js'
 import AIResponse from '../components/AIResponse.jsx'
 import { safeImageUrl } from '../lib/safeUrl.js'
 import MathText from '../components/MathText.jsx'
 import { useToast } from '../components/Toast.jsx'
 
-const DRAFT_KEY = 'studyhub_quiz_draft'
 const MODE_MOTION = {
   initial: { y: 6 },
   animate: { y: 0 },
   exit: { y: 0, transition: { duration: 0 } },
   transition: { duration: 0.28, ease: [0.22, 1, 0.36, 1] }
 }
-function readDraft() {
-  try {
-    return restoreQuizDraft(JSON.parse(localStorage.getItem(DRAFT_KEY) || 'null'))
-  } catch { return null }
-}
-
 export default function Quiz({ onOpenChat }) {
   const { subject } = useParams()
   const [searchParams] = useSearchParams()
   const toast = useToast()
   const [mode, setMode] = React.useState('config') // config | loading | quiz | result
   const [topic, setTopic] = React.useState(searchParams.get('topic') || (subject && !['Matemática', 'Geral'].includes(subject) ? subject : ''))
-  const [discipline, setDiscipline] = React.useState(subject === 'Matemática' ? 'Matemática' : 'Não classificada')
+  const routeSubject = studySubjects.includes(subject) ? subject : 'Não classificada'
+  const [discipline, setDiscipline] = React.useState(routeSubject)
+  React.useEffect(() => { setDiscipline(routeSubject) }, [routeSubject])
+  const examTopics = topicsForSubject(discipline)
   const [count, setCount] = React.useState(5)
   const [questions, setQuestions] = React.useState([])
   const [answers, setAnswers] = React.useState({})
@@ -47,7 +43,16 @@ export default function Quiz({ onOpenChat }) {
   const [progress, setProgress] = React.useState(getProgress)
   const [sessionId, setSessionId] = React.useState('')
   const [questionStartedAt, setQuestionStartedAt] = React.useState(Date.now)
-  const [draft, setDraft] = React.useState(readDraft)
+  const [draft, setDraft] = React.useState(readQuizDraft)
+  const [errorSubject, setErrorSubject] = React.useState('')
+  const study = searchParams.get('estudo')
+  const sectionRef = React.useRef(null)
+  React.useEffect(() => {
+    if (study && mode === 'config') {
+      const target = sectionRef.current?.querySelector(`[data-study="${['erros', 'treino', 'continuar', 'revisao'].includes(study) ? study : ''}"]`)
+      ;(target || sectionRef.current)?.focus()
+    }
+  }, [study, mode])
   const [, refreshFavorite] = React.useState(0)
 
   const questionContext = (item, selected) => `Questão: ${item.q}\nAlternativas: ${item.opts.map((o, i) => `${String.fromCharCode(65 + i)}) ${o}`).join(' | ')}\nResposta do aluno: ${selected === undefined ? 'não respondida' : `${String.fromCharCode(65 + selected)}) ${item.opts[selected]}`}\nGabarito: ${String.fromCharCode(65 + item.correct)}) ${item.opts[item.correct]}\nExplicação existente: ${item.explain || 'não fornecida'}`
@@ -102,6 +107,32 @@ export default function Quiz({ onOpenChat }) {
     }
   }
 
+  const startStudy = (items, isReview) => {
+    if (!items.length) return
+    setQuestions(items.map((item, index) => ({ ...item, subject: item.subject || (item.source === 'simulado' ? item.topic : undefined), reviewId: item.id, id: index + 1 })))
+    setAnswers({})
+    setRevealed({})
+    setExplanations({})
+    setCurrent(0)
+    setResult(null)
+    setReviewing(isReview)
+    setSessionId(crypto.randomUUID())
+    setError('')
+    setMode('quiz')
+  }
+
+  const startTopic = async (examTopic) => {
+    setError('')
+    setLoadingMsg('Buscando questões reais do ENEM...')
+    setMode('loading')
+    try {
+      startStudy(await loadTopicQuestions(examTopic), false)
+    } catch (error) {
+      setError(error.message || 'Não foi possível carregar o treino.')
+      setMode('config')
+    }
+  }
+
   const handleAnswer = (qid, idx) => {
     if (revealed[qid]) return
     setAnswers((prev) => ({ ...prev, [qid]: idx }))
@@ -109,8 +140,8 @@ export default function Quiz({ onOpenChat }) {
     const q = questions.find((x) => x.id === qid)
     if (q) {
       updateFavoriteAnswer(q.reviewId || `quiz-${sessionId}-${q.id}`, idx)
-      recordResult({ id: q.reviewId || `quiz-${sessionId}-${q.id}`, topic: q.topic || topic, subject: q.subject || discipline, q: q.q, opts: q.opts, correct: q.correct, explain: q.explain, source: 'quiz' }, idx === q.correct)
-      recordAnswer({ subject: q.subject || discipline, correct: idx === q.correct, source: 'prática', durationMs: Date.now() - questionStartedAt })
+      recordResult({ id: q.reviewId || `quiz-${sessionId}-${q.id}`, topic: q.topic || topic, subject: q.subject || discipline, q: q.q, opts: q.opts, correct: q.correct, explain: q.explain, source: q.source || 'quiz', files: q.files, altFiles: q.altFiles, year: q.year }, idx === q.correct)
+      recordAnswer({ subject: q.subject || discipline, correct: idx === q.correct, source: q.source === 'simulado' ? 'simulado' : 'prática', durationMs: Date.now() - questionStartedAt })
       setProgress(recordStudy())
     }
   }
@@ -118,6 +149,8 @@ export default function Quiz({ onOpenChat }) {
   const finish = () => {
     const correctCount = questions.filter((q) => answers[q.id] === q.correct).length
     setResult({ correctCount, total: questions.length })
+    try { localStorage.removeItem(DRAFT_KEY) } catch { /* armazenamento opcional */ }
+    setDraft(null)
     setMode('result')
   }
 
@@ -135,7 +168,10 @@ export default function Quiz({ onOpenChat }) {
 
   const q = questions[current]
   const streak = mode === 'config' ? getStreak(progress) : 0
-  const dueQuestionCount = mode === 'config' ? getDue().filter((item) => Array.isArray(item.opts) && validateQuestion(item)).length : 0
+  const due = mode === 'config' ? reviewQuestions() : []
+  const missed = mode === 'config' ? missedQuestions() : []
+  const subjectOf = (item) => item.subject || (item.source === 'simulado' ? item.topic : null) || 'Não classificada'
+  const visibleMissed = missed.filter((item) => !errorSubject || subjectOf(item) === errorSubject)
   React.useEffect(() => { setQuestionStartedAt(Date.now()) }, [current, mode])
   React.useEffect(() => {
     if (mode !== 'quiz' || !questions.length) return
@@ -179,6 +215,62 @@ export default function Quiz({ onOpenChat }) {
         {mode === 'config' && (
           <motion.div key="config" {...MODE_MOTION} className="glass rounded-3xl p-8 space-y-6">
             <div>
+              <label htmlFor="quiz-discipline" className="block text-sm text-gray-600 dark:text-white/60 mb-2">Matéria da prática</label>
+              <select id="quiz-discipline" value={studySubjects.includes(discipline) ? discipline : 'Não classificada'} onChange={(e) => setDiscipline(e.target.value)} className="glass rounded-xl px-4 py-3 bg-transparent">
+                {['Não classificada', ...studySubjects].map((name) => <option key={name} value={name} className="bg-ink-900">{name}</option>)}
+              </select>
+            </div>
+            <section ref={sectionRef} tabIndex={-1} aria-label="Opções de estudo" className="space-y-4">
+              {draft && (
+                <div className="rounded-2xl border border-line p-4">
+                  <p className="text-sm text-muted">{Object.keys(draft.revealed).length} de {draft.questions.length} questões respondidas.</p>
+                  <button onClick={() => {
+                    setQuestions(draft.questions)
+                    setAnswers(draft.answers)
+                    setRevealed(draft.revealed)
+                    setCurrent(draft.current)
+                    setTopic(draft.topic || '')
+                    setDiscipline(draft.discipline || 'Não classificada')
+                    setSessionId(draft.sessionId || crypto.randomUUID())
+                    setReviewing(Boolean(draft.reviewing))
+                    setMode('quiz')
+                  }} data-study="continuar" className="btn btn-primary mt-2">Continuar quiz</button>
+                </div>
+              )}
+              {due.length > 0 && <button data-study="revisao" onClick={() => startStudy(due, true)} className="btn btn-ghost">
+                Revisar {due.length} {due.length === 1 ? 'questão pendente' : 'questões pendentes'}
+              </button>}
+              <div>
+                <h2 data-study="treino" tabIndex={-1} className="font-display text-xl font-bold">Treino por assunto</h2>
+                <p className="mt-1 text-sm text-muted">{examTopics.length ? `Questões reais do ENEM · ${discipline}` : 'Escolha uma matéria para ver os treinos disponíveis.'}</p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {examTopics.map((item) => <button key={item.name} onClick={() => startTopic(item)} className="btn btn-ghost">{item.name} · {item.count} questões</button>)}
+                </div>
+              </div>
+              <div>
+                <h2 data-study="erros" tabIndex={-1} className="font-display text-xl font-bold">Caderno de erros</h2>
+                {missed.length === 0 ? <p className="mt-1 text-sm text-muted">As questões que você errar aparecerão aqui.</p> : <>
+                  <label className="mt-2 inline-flex items-center gap-2 text-sm">
+                    Matéria
+                    <select value={errorSubject} onChange={(event) => setErrorSubject(event.target.value)} className="glass rounded-lg px-2 py-1 bg-transparent">
+                      <option value="">Todas</option>
+                      {[...new Set(missed.map(subjectOf))].sort().map((name) => <option key={name}>{name}</option>)}
+                    </select>
+                  </label>
+                  <button disabled={!visibleMissed.length} onClick={() => startStudy(visibleMissed, true)} className="btn btn-ghost ml-2">
+                    Refazer erros ({visibleMissed.length})
+                  </button>
+                  <ul className="mt-2 space-y-2">
+                    {visibleMissed.map((item) => <li key={item.id}>
+                      <button onClick={() => startStudy([item], true)} className="text-left text-sm hover:underline">
+                        {item.q?.trim() ? item.q.trim().slice(0, 120) + (item.q.trim().length > 120 ? '…' : '') : 'Questão ilustrada'} · {subjectOf(item)}
+                      </button>
+                    </li>)}
+                  </ul>
+                </>}
+              </div>
+            </section>
+            <div>
               <label htmlFor="quiz-topic" className="block text-sm text-gray-600 dark:text-white/60 mb-2">Assunto</label>
               <input
                 id="quiz-topic"
@@ -189,13 +281,6 @@ export default function Quiz({ onOpenChat }) {
                 className="w-full glass rounded-xl px-4 py-3 bg-transparent outline-none"
               />
             </div>
-            <div>
-              <label htmlFor="quiz-discipline" className="block text-sm text-gray-600 dark:text-white/60 mb-2">Matéria (para organizar favoritas)</label>
-              <select id="quiz-discipline" value={discipline} onChange={(e) => setDiscipline(e.target.value)} className="glass rounded-xl px-4 py-3 bg-transparent">
-                {['Não classificada', 'Matemática', 'Linguagens', 'Ciências Humanas', 'Ciências da Natureza'].map((name) => <option key={name} value={name} className="bg-ink-900">{name}</option>)}
-              </select>
-            </div>
-
             <div>
               <label className="block text-sm text-gray-600 dark:text-white/60 mb-2">Quantidade de questões</label>
               <div className="flex items-center gap-3 flex-wrap">
@@ -227,53 +312,6 @@ export default function Quiz({ onOpenChat }) {
               <div className="h-2 rounded-full bg-white/10"><div className="bar-smooth h-full rounded-full bg-neon-cyan" style={{ width: `${Math.min(100, todayCount(progress) / progress.goal * 100)}%` }} /></div>
               <p className="text-xs text-gray-500 dark:text-white/60">Progresso salvo neste navegador.</p>
             </div>
-            {dueQuestionCount > 0 && (
-              <div className="glass rounded-2xl p-4">
-                <div className="text-sm font-medium mb-2 text-gray-900 dark:text-white">
-                  📚 Revisão espaçada: {dueQuestionCount} {dueQuestionCount === 1 ? 'questão pendente' : 'questões pendentes'}
-                </div>
-                <button
-                  onClick={() => {
-                    const due = getDue().filter((item) => Array.isArray(item.opts) && validateQuestion(item))
-                    const qs = due.map((d, i) => ({
-                      id: i + 1,
-                      reviewId: d.id,
-                      topic: d.topic,
-                      subject: d.subject,
-                      q: d.q,
-                      opts: d.opts,
-                      correct: d.correct,
-                      explain: d.explain,
-                      files: d.files,
-                      altFiles: d.altFiles
-                    }))
-                    setQuestions(qs)
-                    setReviewing(true)
-                    setExplanations({})
-                    setAnswers({})
-                    setRevealed({})
-                    setCurrent(0)
-                    setResult(null)
-                    setMode('quiz')
-                    toast('Modo revisão iniciado!', 'info')
-                  }}
-                  className="px-4 py-2 rounded-xl text-sm font-semibold bg-gradient-to-r from-neon-cyan to-neon-violet text-ink-950"
-                >
-                  Revisar agora
-                </button>
-              </div>
-            )}
-            {draft && (
-              <div className="rounded-2xl border border-neon-violet/40 bg-neon-violet/10 p-4">
-                <p className="font-semibold">Você tem um quiz em andamento</p>
-                <p className="mt-1 text-sm text-gray-600 dark:text-white/65">{Object.keys(draft.revealed || {}).length} de {draft.questions.length} questões respondidas.</p>
-                <button onClick={() => {
-                  setQuestions(draft.questions); setAnswers(draft.answers || {}); setRevealed(draft.revealed || {}); setCurrent(draft.current || 0)
-                  setTopic(draft.topic || ''); setDiscipline(draft.discipline || 'Não classificada'); setSessionId(draft.sessionId || crypto.randomUUID()); setReviewing(Boolean(draft.reviewing)); setMode('quiz')
-                }} className="btn btn-primary mt-3 !rounded-xl !px-4 !py-2 text-sm">Continuar quiz</button>
-              </div>
-            )}
-
             {error && <div className="text-rose-300 text-sm">{error}</div>}
 
             <button
@@ -389,7 +427,7 @@ export default function Quiz({ onOpenChat }) {
                     <div className="mt-4 flex flex-wrap gap-2" aria-label="Definir intervalo de revisão">
                       <span className="w-full text-xs text-gray-500 dark:text-white/60">Como foi para lembrar?</span>
                       {[['again', 'Não lembrei'], ['hard', 'Difícil'], ['good', 'Bom'], ['easy', 'Fácil']].map(([rating, label]) => <button key={rating} onClick={() => {
-                        recordResult({ id: q.reviewId || `quiz-${sessionId}-${q.id}`, topic: q.topic || topic, subject: q.subject || discipline, q: q.q, opts: q.opts, correct: q.correct, explain: q.explain, source: 'quiz' }, answers[q.id] === q.correct, rating)
+                        recordResult({ id: q.reviewId || `quiz-${sessionId}-${q.id}`, topic: q.topic || topic, subject: q.subject || discipline, q: q.q, opts: q.opts, correct: q.correct, explain: q.explain, source: q.source || 'quiz', files: q.files, altFiles: q.altFiles, year: q.year }, answers[q.id] === q.correct, rating)
                         toast(`Revisão ajustada: ${label.toLowerCase()}.`, 'success')
                       }} className="rounded-lg glass px-3 py-1.5 text-xs hover:border-neon-cyan/60">{label}</button>)}
                     </div>

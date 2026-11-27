@@ -3,6 +3,7 @@ import { MotionConfig } from 'framer-motion'
 import { Routes, Route, Link, useLocation } from 'react-router-dom'
 import { ArrowRight } from 'lucide-react'
 import Navbar from './components/Navbar.jsx'
+import Scratchpad from './components/Scratchpad.jsx'
 import Hero from './components/Hero.jsx'
 import SubjectCards from './components/SubjectCards.jsx'
 import Footer from './components/Footer.jsx'
@@ -123,6 +124,7 @@ function ClosingBand() {
 export default function App() {
   // null até a primeira abertura; depois mantemos o tutor montado para preservar a conversa.
   const [chatOpen, setChatOpen] = useState(null)
+  const [scratchpadOpen, setScratchpadOpen] = useState(false)
   const [chatContext, setChatContext] = useState('')
   // Mantém a página atual visível enquanto o código da próxima rota carrega.
   const location = useDeferredValue(useLocation())
@@ -160,7 +162,9 @@ export default function App() {
       <ToastProvider>
         <div className="relative min-h-screen">
           <a href="#conteudo-principal" className="skip-link">Pular para o conteúdo principal</a>
-          <Navbar currentLocation={location} onOpenChat={() => { setChatContext(''); setChatOpen(true) }} onPreloadRoute={preloadRoute} />
+          <Navbar currentLocation={location} onOpenChat={() => { setChatContext(''); setChatOpen(true) }}
+            scratchpadOpen={scratchpadOpen} onToggleScratchpad={() => setScratchpadOpen((value) => !value)}
+            onPreloadRoute={preloadRoute} />
           <span className="sr-only" role="status" aria-live="polite">{pageAnnouncement}</span>
           <Suspense fallback={<main className="px-6 pt-28" role="status">Carregando página…</main>}>
             <div
@@ -193,6 +197,7 @@ export default function App() {
             </div>
           </Suspense>
           <Footer />
+          <Scratchpad open={scratchpadOpen} onClose={() => setScratchpadOpen(false)} />
           {chatOpen !== null && (
             <Suspense fallback={<div role="status" className="fixed bottom-6 right-6 z-[60] glass-strong rounded-xl px-4 py-3">Abrindo tutor…</div>}>
               <ChatAI open={chatOpen} onClose={() => setChatOpen(false)} context={chatContext} />

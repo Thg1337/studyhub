@@ -8,6 +8,7 @@ const subjects = [
   { name: 'Química', icon: FlaskConical, desc: 'Atomística, físico-química e orgânica.' },
   { name: 'Biologia', icon: Leaf, desc: 'Ecologia, genética e fisiologia humana.' },
   { name: 'História', icon: Globe, desc: 'Brasil, mundo contemporâneo e atualidades.' },
+  { name: 'Geografia', icon: Globe, desc: 'Solos, clima, população e organização do espaço.' },
   { name: 'Português', icon: BookOpen, desc: 'Interpretação de texto, gramática e redação.' }
 ]
 
@@ -25,7 +26,7 @@ export default function SubjectCards() {
           </h2>
         </div>
         <p className="body-copy max-w-xs text-sm leading-relaxed text-muted">
-          Seis frentes do ENEM com aulas, questões e revisão espaçada no mesmo lugar.
+          Matérias do ENEM com aulas, questões e revisão espaçada no mesmo lugar.
         </p>
       </div>
 
@@ -50,6 +51,9 @@ export default function SubjectCards() {
               <span className="subject-cta mt-6">
                 Explorar matéria <ArrowUpRight className="h-3.5 w-3.5" aria-hidden="true" />
               </span>
+            </Link>
+            <Link to={`/quiz/${encodeURIComponent(subject.name)}?estudo=treino`} className="btn btn-ghost mt-3" aria-label={`Praticar ${subject.name}`}>
+              Praticar
             </Link>
           </div>
         ))}

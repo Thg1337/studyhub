@@ -1,4 +1,5 @@
 import React from 'react'
+import { studySubjects } from '../lib/studySession.js'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Link, useSearchParams } from 'react-router-dom'
 import { Search, Sparkles, Play, Loader2, BookOpen, Youtube, BrainCircuit, Calculator, ListChecks } from 'lucide-react'
@@ -194,7 +195,7 @@ export default function Explore() {
           ['revisao', ListChecks, 'Revisão 5 min']
         ].map(([key, Icon, label]) => <button key={key} onClick={() => setSummaryKind(key)}
           className={`inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm ${summaryKind === key ? 'bg-neon-cyan/20 border border-neon-cyan/60' : 'glass hover:bg-white/10'}`}><Icon className="h-4 w-4" />{label}</button>)}
-        <Link to={`/quiz/Geral?topic=${encodeURIComponent(topic || activeTopic)}`} className="inline-flex items-center gap-2 rounded-xl glass px-3 py-2 text-sm hover:bg-white/10"><Sparkles className="h-4 w-4" />Praticar assunto</Link>
+        <Link to={`/quiz/${encodeURIComponent(studySubjects.find((name) => name === topic.trim() || name === searchParams.get('topic')) || 'Geral')}?topic=${encodeURIComponent(topic || activeTopic)}`} className="inline-flex items-center gap-2 rounded-xl glass px-3 py-2 text-sm hover:bg-white/10"><Sparkles className="h-4 w-4" />Praticar assunto</Link>
       </div>
 
       {!activeTopic && !error && (

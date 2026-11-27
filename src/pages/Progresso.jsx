@@ -1,4 +1,5 @@
 import React from 'react'
+import { Link } from 'react-router-dom'
 import { BarChart3, Clock3, Flame, Target, TrendingUp } from 'lucide-react'
 import { getDashboard, getProgress, getStreak, setDailyGoal, todayCount } from '../lib/progress.js'
 import { exportStudyData, importStudyData } from '../lib/dataTransfer.js'
@@ -51,6 +52,7 @@ export default function Progresso() {
     </section>
     <section data-reveal className="mt-6 glass rounded-3xl p-6">
       <h2 className="font-display text-xl font-bold">Desempenho por matéria</h2>
+      <Link to="/quiz/Matemática?estudo=erros" className="btn btn-ghost mt-3">Abrir caderno de erros</Link>
       {dashboard.bySubject.length ? <div className="mt-5 space-y-4">{dashboard.bySubject.sort((a, b) => b.total - a.total).map((item, index) => <div key={item.subject} className="grid gap-2 sm:grid-cols-[180px_1fr_100px] sm:items-center"><strong className="text-sm">{item.subject}</strong><div className="h-2 overflow-hidden rounded-full bg-gray-200 dark:bg-white/10"><div className="bar-grow-x h-full rounded-full bg-neon-cyan" style={{ width: `${item.rate}%`, '--bar-delay': `${index * 50}ms` }} /></div><span className="text-sm text-gray-600 dark:text-white/70">{item.rate}% · {item.correct}/{item.total}</span></div>)}</div> : <p className="mt-4 text-sm text-gray-600 dark:text-white/60">Responda questões na Prática ou nos Simulados para ver sua evolução aqui.</p>}
     </section>
     <section data-reveal className="mt-6 glass rounded-3xl p-6">

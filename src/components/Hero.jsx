@@ -1,6 +1,8 @@
 import React from 'react'
 import { ArrowRight, Check, Flame, Play } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import { readExamDraft } from '../lib/examStorage.js'
+import { readQuizDraft, reviewQuestions } from '../lib/studySession.js'
 
 const facts = [
   ['180 questões', '1 simulado completo'],
@@ -68,6 +70,13 @@ function QuestionPreview() {
 }
 
 export default function Hero() {
+  const exam = readExamDraft()
+  const draft = readQuizDraft()
+  const due = reviewQuestions().length
+  const next = exam ? { to: '/simulados', label: 'Continuar simulado' }
+    : draft ? { to: '/quiz/Matemática?estudo=continuar', label: 'Continuar de onde parei' }
+    : due ? { to: '/quiz/Matemática?estudo=revisao', label: `Revisar ${due} ${due === 1 ? 'questão' : 'questões'}` }
+    : { to: '/quiz/Matemática?estudo=treino', label: 'Treinar com questões do ENEM' }
   return (
     <section className="relative overflow-hidden pb-20 pt-32 lg:flex lg:min-h-[100svh] lg:items-center lg:pb-16 lg:pt-36">
       <div className="hero-glow" aria-hidden="true" />
@@ -93,8 +102,9 @@ export default function Hero() {
           </p>
 
           <div className="reveal mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center" style={{ '--reveal-delay': '280ms' }}>
-            <Link to="/explore" className="btn btn-primary w-full sm:w-auto">
-              Começar agora <ArrowRight className="h-4 w-4" />
+            <Link to={next.to} aria-label={`Estudar agora: ${next.label}`} className="btn btn-primary w-full sm:w-auto">
+              Estudar agora <ArrowRight className="h-4 w-4" />
+              <span className="text-xs opacity-80">{next.label}</span>
             </Link>
             <Link to="/quiz/Matemática" className="btn btn-ghost w-full sm:w-auto">
               <Play className="h-3.5 w-3.5" /> Praticar Matemática

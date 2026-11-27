@@ -1,7 +1,7 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Sparkles, Menu, X, Sun, Moon, ArrowUpRight } from 'lucide-react'
+import { Sparkles, Menu, X, Sun, Moon, ArrowUpRight, Pencil } from 'lucide-react'
 import { useTheme } from './ThemeToggle.jsx'
 
 const links = [
@@ -14,7 +14,7 @@ const links = [
   { to: '/quiz/Matemática', label: 'Prática' }
 ]
 
-export default function Navbar({ currentLocation, onOpenChat, onPreloadRoute }) {
+export default function Navbar({ currentLocation, onOpenChat, onPreloadRoute, scratchpadOpen, onToggleScratchpad }) {
   const [open, setOpen] = React.useState(false)
   const [navigation, setNavigation] = React.useState(null)
   const pending = navigation?.fromKey === currentLocation.key ? navigation.to : null
@@ -73,6 +73,12 @@ export default function Navbar({ currentLocation, onOpenChat, onPreloadRoute }) 
               </span>
             </button>
 
+            <button type="button" onClick={onToggleScratchpad} aria-expanded={scratchpadOpen}
+              aria-controls={scratchpadOpen ? 'scratchpad' : undefined} aria-label="Rascunho"
+              className="btn btn-ghost !hidden !px-3 !py-2.5 lg:!inline-flex">
+              <Pencil className="h-4 w-4" aria-hidden="true" /> <span className="hidden xl:inline">Rascunho</span>
+            </button>
+
             <button onClick={onOpenChat} className="btn btn-primary !hidden !px-4 !py-2.5 lg:!inline-flex">
               <Sparkles className="h-4 w-4" /> Tutor IA
             </button>
@@ -116,12 +122,15 @@ export default function Navbar({ currentLocation, onOpenChat, onPreloadRoute }) 
                   </Link>
                 ))}
               </nav>
-              <button
-                onClick={() => { setOpen(false); onOpenChat() }}
-                className="btn btn-primary mt-2 w-full"
-              >
-                <Sparkles className="h-4 w-4" /> Abrir tutor IA
-              </button>
+              <div className="mt-2 grid grid-cols-2 gap-2">
+                <button type="button" onClick={() => { setOpen(false); onToggleScratchpad() }} aria-expanded={scratchpadOpen}
+                  aria-controls={scratchpadOpen ? 'scratchpad' : undefined} className="btn btn-ghost !px-2">
+                  <Pencil className="h-4 w-4" aria-hidden="true" /> Rascunho
+                </button>
+                <button onClick={() => { setOpen(false); onOpenChat() }} className="btn btn-primary !px-2">
+                  <Sparkles className="h-4 w-4" /> Abrir tutor IA
+                </button>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
